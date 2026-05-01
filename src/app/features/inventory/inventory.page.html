@@ -1,0 +1,49 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/dashboard"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Inventory</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="load($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="container-tight content-wrap">
+    <div *ngIf="loading()" class="surface-card">
+      <ion-skeleton-text animated style="width: 80%; height: 14px;"></ion-skeleton-text>
+      <ion-skeleton-text animated style="width: 60%; height: 14px; margin-top: 8px;"></ion-skeleton-text>
+    </div>
+
+    <div *ngIf="!loading() && logs().length === 0" class="empty">
+      <ion-icon name="swap-horizontal-outline"></ion-icon>
+      <p>No inventory activity yet.</p>
+    </div>
+
+    <div *ngIf="!loading() && logs().length > 0" class="log-list">
+      <div *ngFor="let l of logs()" class="log-row">
+        <div class="dir" [class.up]="l.quantity_change > 0" [class.down]="l.quantity_change < 0">
+          <ion-icon [name]="l.quantity_change > 0 ? 'arrow-up-outline' : 'arrow-down-outline'"></ion-icon>
+        </div>
+        <div class="info">
+          <p class="name">{{ l.product?.name || 'Item' }}</p>
+          <p class="meta">
+            <ion-icon name="time-outline"></ion-icon>
+            {{ l.created_at | date:'MMM d, h:mm a' }}
+            <span class="dot">•</span>
+            <span class="type">{{ l.type }}</span>
+          </p>
+        </div>
+        <div class="qty">
+          <span class="change" [class.pos]="l.quantity_change > 0">
+            {{ l.quantity_change > 0 ? '+' : '' }}{{ l.quantity_change }}
+          </span>
+          <span class="after">→ {{ l.quantity_after }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>

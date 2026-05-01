@@ -7,6 +7,9 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "sync:android": "ng build && cap sync android",
+    "run:android": "ng build && cap run android",
+    "run:android:emulator": "ng build && cap run android --target emulator-5554",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint"
@@ -21,6 +24,7 @@
     "@angular/platform-browser": "^20.0.0",
     "@angular/platform-browser-dynamic": "^20.0.0",
     "@angular/router": "^20.0.0",
+    "@capacitor/android": "8.3.1",
     "@capacitor/app": "8.1.0",
     "@capacitor/core": "8.3.1",
     "@capacitor/haptics": "8.0.2",
@@ -58,7 +62,10 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
-    "typescript": "~5.9.0"
+    "typescript": "~5.9.0",
+    "tailwindcss": "^3.4.13",
+    "postcss": "^8.4.47",
+    "autoprefixer": "^10.4.20"
   },
   "description": "An Ionic project"
 }

@@ -1,0 +1,101 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>More</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="container-tight content-wrap">
+
+    <!-- Tenant card -->
+    <div class="tenant-card">
+      <div class="logo">
+        <img *ngIf="auth.tenant()?.logo_url" [src]="auth.tenant()?.logo_url" alt="" />
+        <img *ngIf="!auth.tenant()?.logo_url" src="assets/baligyalogo.png" alt="" />
+      </div>
+      <div class="info">
+        <p class="store">{{ auth.tenant()?.name || 'Baligya' }}</p>
+        <p class="email">{{ auth.tenant()?.email || auth.user()?.email }}</p>
+        <span *ngIf="auth.tenant()?.is_verified" class="pill">Verified</span>
+        <span *ngIf="!auth.tenant()?.is_verified" class="pill pill-warning">Unverified</span>
+      </div>
+    </div>
+
+    <!-- User card -->
+    <div class="user-row">
+      <div class="avatar">{{ (auth.user()?.name || '?').charAt(0) }}</div>
+      <div>
+        <p class="name">{{ auth.user()?.name || 'User' }}</p>
+        <p class="role">{{ auth.user()?.role | titlecase }}</p>
+      </div>
+    </div>
+
+    <!-- Sections -->
+    <div class="section">
+      <h3 class="section-title">Operations</h3>
+      <div class="menu">
+        <a routerLink="/expenses" class="menu-item ion-activatable">
+          <ion-ripple-effect></ion-ripple-effect>
+          <span class="m-icon"><ion-icon name="wallet-outline"></ion-icon></span>
+          <span class="m-label">Expenses</span>
+          <ion-icon name="chevron-forward-outline" class="m-arrow"></ion-icon>
+        </a>
+        <a routerLink="/inventory" class="menu-item ion-activatable">
+          <ion-ripple-effect></ion-ripple-effect>
+          <span class="m-icon"><ion-icon name="swap-horizontal-outline"></ion-icon></span>
+          <span class="m-label">Inventory log</span>
+          <ion-icon name="chevron-forward-outline" class="m-arrow"></ion-icon>
+        </a>
+        <a routerLink="/categories" class="menu-item ion-activatable">
+          <ion-ripple-effect></ion-ripple-effect>
+          <span class="m-icon"><ion-icon name="layers-outline"></ion-icon></span>
+          <span class="m-label">Categories</span>
+          <ion-icon name="chevron-forward-outline" class="m-arrow"></ion-icon>
+        </a>
+        <a routerLink="/employees" class="menu-item ion-activatable">
+          <ion-ripple-effect></ion-ripple-effect>
+          <span class="m-icon"><ion-icon name="people-outline"></ion-icon></span>
+          <span class="m-label">Employees</span>
+          <ion-icon name="chevron-forward-outline" class="m-arrow"></ion-icon>
+        </a>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3 class="section-title">Account</h3>
+      <div class="menu">
+        <a routerLink="/settings/store" class="menu-item ion-activatable">
+          <ion-ripple-effect></ion-ripple-effect>
+          <span class="m-icon"><ion-icon name="storefront-outline"></ion-icon></span>
+          <span class="m-label">Store profile</span>
+          <ion-icon name="chevron-forward-outline" class="m-arrow"></ion-icon>
+        </a>
+        <a routerLink="/settings/subscription" class="menu-item ion-activatable">
+          <ion-ripple-effect></ion-ripple-effect>
+          <span class="m-icon"><ion-icon name="card-outline"></ion-icon></span>
+          <span class="m-label">Subscription</span>
+          <ion-icon name="chevron-forward-outline" class="m-arrow"></ion-icon>
+        </a>
+        <a routerLink="/settings/security" class="menu-item ion-activatable">
+          <ion-ripple-effect></ion-ripple-effect>
+          <span class="m-icon"><ion-icon name="lock-closed-outline"></ion-icon></span>
+          <span class="m-label">Security & PIN</span>
+          <ion-icon name="chevron-forward-outline" class="m-arrow"></ion-icon>
+        </a>
+        <a routerLink="/help" class="menu-item ion-activatable">
+          <ion-ripple-effect></ion-ripple-effect>
+          <span class="m-icon"><ion-icon name="help-circle-outline"></ion-icon></span>
+          <span class="m-label">Help & support</span>
+          <ion-icon name="chevron-forward-outline" class="m-arrow"></ion-icon>
+        </a>
+      </div>
+    </div>
+
+    <button type="button" class="signout" (click)="logout()">
+      <ion-icon name="log-out-outline"></ion-icon>
+      Sign out
+    </button>
+
+    <p class="version">Baligya v1.0.0</p>
+  </div>
+</ion-content>

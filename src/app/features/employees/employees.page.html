@@ -1,0 +1,137 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/more"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Staff</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="load($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="container-tight content-wrap">
+    <div *ngIf="loading()" class="surface-card">
+      <ion-skeleton-text animated style="width: 80%; height: 14px;"></ion-skeleton-text>
+      <ion-skeleton-text animated style="width: 60%; height: 14px; margin-top: 8px;"></ion-skeleton-text>
+    </div>
+
+    <div *ngIf="!loading() && items().length === 0" class="empty">
+      <ion-icon name="people-outline"></ion-icon>
+      <p>No staff yet.</p>
+      <small>Tap + to invite a manager or cashier.</small>
+    </div>
+
+    <div *ngIf="!loading() && items().length > 0" class="staff-list">
+      <div *ngFor="let s of items()" class="staff-row">
+        <div class="avatar">{{ s.name.charAt(0) }}</div>
+        <div class="info">
+          <p class="name">{{ s.name }}</p>
+          <p class="meta">
+            <span class="role-tag" [class.owner]="s.role === 'owner'">{{ s.role | titlecase }}</span>
+            <span class="dot">•</span>
+            <span>{{ s.email }}</span>
+          </p>
+          <span *ngIf="!s.is_active" class="pill pill-muted">Inactive</span>
+        </div>
+        <div class="row-actions" *ngIf="s.role !== 'owner'">
+          <button type="button" class="row-action" (click)="openEdit(s)" aria-label="Edit">
+            <ion-icon name="create-outline"></ion-icon>
+          </button>
+          <button type="button" class="row-action danger" (click)="confirmDelete(s)" aria-label="Remove">
+            <ion-icon name="trash-outline"></ion-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button class="brand-fab" (click)="openAdd()">
+      <ion-icon name="add-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>
+
+<ion-modal [isOpen]="modalOpen()" (didDismiss)="modalOpen.set(false)">
+  <ng-template>
+    <div class="modal-shell">
+      <div class="modal-head sticky">
+        <h2>{{ editing() ? 'Edit staff' : 'Add staff' }}</h2>
+        <button type="button" class="icon-btn" (click)="modalOpen.set(false)" aria-label="Close">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="save()" class="modal-body">
+        <div class="field">
+          <ion-input label="Full name" labelPlacement="stacked" formControlName="name" placeholder="Juan Dela Cruz">
+            <ion-icon slot="start" name="person-outline"></ion-icon>
+          </ion-input>
+        </div>
+
+        <div class="field">
+          <ion-input label="Email" labelPlacement="stacked" type="email" inputmode="email" formControlName="email">
+            <ion-icon slot="start" name="mail-outline"></ion-icon>
+          </ion-input>
+        </div>
+
+        <div class="field">
+          <ion-select label="Role" labelPlacement="stacked" interface="action-sheet" formControlName="role">
+            <ion-select-option value="manager">Manager</ion-select-option>
+            <ion-select-option value="cashier">Cashier</ion-select-option>
+          </ion-select>
+        </div>
+
+        <div class="field">
+          <ion-input
+            [label]="editing() ? 'New password (leave blank to keep)' : 'Password'"
+            labelPlacement="stacked"
+            type="password"
+            formControlName="password"
+            placeholder="At least 8 characters">
+            <ion-icon slot="start" name="lock-closed-outline"></ion-icon>
+          </ion-input>
+        </div>
+
+        <div class="field">
+          <ion-input
+            label="Confirm password"
+            labelPlacement="stacked"
+            type="password"
+            formControlName="password_confirmation">
+            <ion-icon slot="start" name="lock-closed-outline"></ion-icon>
+          </ion-input>
+        </div>
+
+        <div class="field">
+          <ion-input
+            label="PIN (4–6 digits, optional)"
+            labelPlacement="stacked"
+            type="password"
+            inputmode="numeric"
+            maxlength="6"
+            formControlName="pin"
+            placeholder="for fast PIN login">
+            <ion-icon slot="start" name="keypad-outline"></ion-icon>
+          </ion-input>
+        </div>
+
+        <div class="toggle-row">
+          <div>
+            <p class="t-label">Active</p>
+            <p class="t-meta">Can sign in and use the app</p>
+          </div>
+          <ion-toggle formControlName="is_active" color="success"></ion-toggle>
+        </div>
+
+        <ion-button expand="block" class="brand-btn" type="submit" [disabled]="submitting()">
+          <ion-spinner *ngIf="submitting()" name="crescent" class="mr-2"></ion-spinner>
+          {{ submitting() ? 'Saving…' : (editing() ? 'Save changes' : 'Add staff') }}
+        </ion-button>
+      </form>
+    </div>
+  </ng-template>
+</ion-modal>

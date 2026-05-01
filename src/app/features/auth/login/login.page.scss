@@ -1,0 +1,64 @@
+.login-content {
+  --background: var(--ion-background-color);
+}
+
+.login-shell {
+  min-height: 100%;
+  padding-top: var(--safe-area-top);
+  padding-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.mode-segment {
+  margin: 4px 0 18px;
+  --background: var(--ion-color-light);
+  border-radius: 12px;
+  padding: 4px;
+  ion-segment-button {
+    --indicator-color: var(--tenant-primary);
+    --indicator-color-checked: var(--tenant-primary);
+    --color-checked: #fff;
+    --color: var(--ion-color-medium);
+    border-radius: 10px;
+    text-transform: none;
+    font-weight: 600;
+    min-height: 40px;
+  }
+}
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.row-end {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -4px;
+}
+
+.text-link {
+  color: var(--tenant-primary);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  &:active { opacity: 0.7; }
+}
+
+.register-row {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--ion-color-medium);
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.mr-2 { margin-right: 8px; }
+
+@media (min-height: 740px) {
+  .login-shell { justify-content: center; }
+}

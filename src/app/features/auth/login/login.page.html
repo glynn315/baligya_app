@@ -1,0 +1,91 @@
+<ion-content [fullscreen]="true" class="login-content">
+  <div class="login-shell">
+    <app-brand-header
+      title="Welcome back"
+      subtitle="Sign in to your Baligya store">
+    </app-brand-header>
+
+    <div class="container-tight">
+      <ion-segment
+        [value]="mode()"
+        (ionChange)="setMode($any($event).detail.value)"
+        class="mode-segment">
+        <ion-segment-button value="password">
+          <ion-icon name="lock-closed-outline"></ion-icon>
+          <ion-label>Password</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="pin">
+          <ion-icon name="keypad-outline"></ion-icon>
+          <ion-label>PIN</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" class="form-stack">
+        <div class="field">
+          <ion-input
+            label="Email"
+            labelPlacement="stacked"
+            type="email"
+            inputmode="email"
+            autocomplete="email"
+            placeholder="you@store.com"
+            formControlName="email">
+            <ion-icon slot="start" name="mail-outline" aria-hidden="true"></ion-icon>
+          </ion-input>
+        </div>
+
+        <ng-container *ngIf="mode() === 'password'; else pinTpl">
+          <div class="field">
+            <ion-input
+              label="Password"
+              labelPlacement="stacked"
+              [type]="showPassword() ? 'text' : 'password'"
+              autocomplete="current-password"
+              placeholder="••••••••"
+              formControlName="password">
+              <ion-icon slot="start" name="lock-closed-outline" aria-hidden="true"></ion-icon>
+              <ion-icon
+                slot="end"
+                [name]="showPassword() ? 'eye-off-outline' : 'eye-outline'"
+                (click)="togglePassword()"
+                class="tap"
+                role="button"
+                aria-label="Toggle password visibility">
+              </ion-icon>
+            </ion-input>
+          </div>
+        </ng-container>
+
+        <ng-template #pinTpl>
+          <div class="field">
+            <ion-input
+              label="PIN"
+              labelPlacement="stacked"
+              type="password"
+              inputmode="numeric"
+              maxlength="6"
+              placeholder="• • • •"
+              formControlName="pin">
+              <ion-icon slot="start" name="keypad-outline" aria-hidden="true"></ion-icon>
+            </ion-input>
+          </div>
+        </ng-template>
+
+        <div class="row-end">
+          <a routerLink="/auth/forgot-password" class="text-link">Forgot password?</a>
+        </div>
+
+        <ion-button expand="block" class="brand-btn" type="submit" [disabled]="submitting()">
+          <ion-spinner *ngIf="submitting()" name="crescent" class="mr-2"></ion-spinner>
+          <span *ngIf="!submitting()">Sign in</span>
+          <ion-icon *ngIf="!submitting()" slot="end" name="arrow-forward-outline"></ion-icon>
+        </ion-button>
+
+        <div class="register-row">
+          <span>New to Baligya?</span>
+          <a routerLink="/auth/register" class="text-link">Create a store</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</ion-content>

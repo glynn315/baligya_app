@@ -1,37 +1,159 @@
 /*
- * App Global CSS
- * ----------------------------------------------------------------------------
- * Put style rules here that you want to apply globally. These styles are for
- * the entire app and not just one component. Additionally, this file can be
- * used as an entry point to import other CSS/Sass files to be included in the
- * output CSS.
- * For more information on global stylesheets, visit the documentation:
- * https://ionicframework.com/docs/layout/global-stylesheets
+ * Baligya — Global styles
+ * Imports Tailwind + Ionic core CSS, defines reusable
+ * SCSS utilities and brand-aligned component primitives.
  */
 
-/* Core CSS required for Ionic components to work properly */
-@import "@ionic/angular/css/core.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* Basic CSS for apps built with Ionic */
+/* Ionic core */
+@import "@ionic/angular/css/core.css";
 @import "@ionic/angular/css/normalize.css";
 @import "@ionic/angular/css/structure.css";
 @import "@ionic/angular/css/typography.css";
 @import "@ionic/angular/css/display.css";
 
-/* Optional CSS utils that can be commented out */
 @import "@ionic/angular/css/padding.css";
 @import "@ionic/angular/css/float-elements.css";
 @import "@ionic/angular/css/text-alignment.css";
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
 
-/**
- * Ionic Dark Mode
- * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
- */
-
-/* @import "@ionic/angular/css/palettes/dark.always.css"; */
-/* @import "@ionic/angular/css/palettes/dark.class.css"; */
 @import '@ionic/angular/css/palettes/dark.system.css';
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* =========================================================
+   Base resets
+   ========================================================= */
+html, body {
+  font-family: var(--ion-font-family);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+ion-content { --background: var(--ion-background-color); }
+
+ion-toolbar {
+  --border-width: 0 !important;
+  --border-color: transparent !important;
+}
+
+/* =========================================================
+   Reusable brand component primitives
+   ========================================================= */
+.brand-btn {
+  --background: var(--tenant-primary);
+  --background-activated: var(--baligya-700);
+  --background-hover: var(--baligya-600);
+  --color: #fff;
+  --border-radius: 12px;
+  --padding-top: 14px;
+  --padding-bottom: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  height: 48px;
+  box-shadow: 0 6px 16px rgba(31, 166, 77, 0.25);
+}
+
+.brand-btn-outline {
+  --background: transparent;
+  --color: var(--tenant-primary);
+  --border-color: var(--tenant-primary);
+  --border-style: solid;
+  --border-width: 1px;
+  --border-radius: 12px;
+  height: 48px;
+  font-weight: 600;
+  text-transform: none;
+}
+
+.surface-card {
+  background: var(--ion-card-background);
+  border: 1px solid var(--ion-border-color);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(15, 31, 23, 0.04),
+              0 4px 16px rgba(15, 31, 23, 0.06);
+  padding: 1rem;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ion-color-medium);
+}
+
+.field {
+  background: var(--ion-item-background);
+  border: 1px solid var(--ion-border-color);
+  border-radius: 12px;
+  padding: 4px 12px;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+
+  &:focus-within {
+    border-color: var(--tenant-primary);
+    box-shadow: 0 0 0 4px rgba(31, 166, 77, 0.15);
+  }
+
+  ion-input, ion-textarea, ion-select {
+    --padding-start: 0;
+    --padding-end: 0;
+    --background: transparent;
+    --color: var(--ion-text-color);
+  }
+
+  ion-label[position="stacked"] {
+    color: var(--ion-color-medium);
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--baligya-50);
+  color: var(--baligya-700);
+
+  &.pill-warning { background: #FEF3C7; color: #92400E; }
+  &.pill-danger  { background: #FDECEC; color: #B42323; }
+  &.pill-muted   { background: var(--ion-color-light); color: var(--ion-color-medium); }
+}
+
+.tap { min-height: 44px; min-width: 44px; }
+
+.brand-gradient {
+  background: linear-gradient(
+    160deg,
+    var(--baligya-400) 0%,
+    var(--baligya-600) 60%,
+    var(--baligya-800) 100%
+  );
+}
+
+.no-tap-highlight { -webkit-tap-highlight-color: transparent; }
+
+.container-tight {
+  width: 100%;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+@media (min-width: 768px) {
+  .container-tight { max-width: 640px; }
+}

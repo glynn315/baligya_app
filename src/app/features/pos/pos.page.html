@@ -1,0 +1,217 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>New sale</ion-title>
+  </ion-toolbar>
+  <ion-toolbar class="search-bar">
+    <ion-searchbar
+      [value]="search()"
+      (ionInput)="search.set($any($event).detail.value || '')"
+      placeholder="Search by name, SKU or barcode"
+      debounce="120"
+      class="brand-search">
+    </ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="load($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="container-tight content-wrap">
+    <div *ngIf="loading()" class="grid">
+      <div *ngFor="let i of [1,2,3,4,5,6]" class="prod-card skeleton"></div>
+    </div>
+
+    <div *ngIf="!loading() && filtered().length === 0" class="empty">
+      <ion-icon name="pricetag-outline"></ion-icon>
+      <p>No products found.</p>
+    </div>
+
+    <div *ngIf="!loading() && filtered().length > 0" class="grid">
+      <button
+        *ngFor="let p of filtered(); trackBy: trackById"
+        type="button"
+        class="prod-card ion-activatable no-tap-highlight"
+        [class.disabled]="p.is_out_of_stock"
+        (click)="add(p)">
+        <ion-ripple-effect></ion-ripple-effect>
+        <div class="prod-thumb">
+          <img *ngIf="p.image_url" [src]="p.image_url" [alt]="p.name" />
+          <span *ngIf="!p.image_url" class="initials">{{ p.name.charAt(0) }}</span>
+          <span *ngIf="p.is_out_of_stock" class="oos">Out</span>
+          <span *ngIf="p.is_low_stock && !p.is_out_of_stock" class="low">Low</span>
+        </div>
+        <div class="prod-body">
+          <p class="prod-name">{{ p.name }}</p>
+          <p class="prod-meta">{{ p.category?.name || '—' }}</p>
+          <div class="prod-price">{{ p.price | peso }}</div>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Floating cart bar -->
+  <button
+    *ngIf="cart().length > 0"
+    type="button"
+    class="cart-bar"
+    (click)="cartOpen.set(true)">
+    <span class="cart-icon">
+      <ion-icon name="cart-outline"></ion-icon>
+      <span class="badge">{{ itemCount() }}</span>
+    </span>
+    <span class="cart-text">View cart</span>
+    <span class="cart-total">{{ total() | peso }}</span>
+  </button>
+</ion-content>
+
+<!-- Cart modal — full-height so the Checkout button is always reachable -->
+<ion-modal [isOpen]="cartOpen()" (didDismiss)="cartOpen.set(false)">
+  <ng-template>
+    <div class="modal-shell">
+      <div class="modal-head sticky">
+        <h2>Cart ({{ itemCount() }})</h2>
+        <div class="modal-head-actions">
+          <button *ngIf="cart().length > 0" type="button" class="link-danger" (click)="clearCart()">
+            <ion-icon name="trash-outline"></ion-icon> Clear
+          </button>
+          <button type="button" class="icon-btn" (click)="cartOpen.set(false)" aria-label="Close">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="cart-list">
+        <div *ngFor="let line of cart()" class="cart-line">
+          <div class="info">
+            <p class="name">{{ line.product.name }}</p>
+            <p class="meta">{{ line.product.price | peso }} each</p>
+          </div>
+          <div class="qty-control">
+            <button class="round" (click)="decrement(line)" aria-label="Decrease">
+              <ion-icon name="remove-outline"></ion-icon>
+            </button>
+            <span class="qnum">{{ line.qty }}</span>
+            <button class="round" (click)="add(line.product)" aria-label="Increase">
+              <ion-icon name="add-outline"></ion-icon>
+            </button>
+          </div>
+          <div class="line-total">{{ line.product.price * line.qty | peso }}</div>
+        </div>
+
+        <div *ngIf="cart().length === 0" class="empty">
+          <ion-icon name="cart-outline"></ion-icon>
+          <p>Your cart is empty.</p>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <div class="totals">
+          <span>Subtotal</span>
+          <strong>{{ subtotal() | peso }}</strong>
+        </div>
+        <ion-button expand="block" class="brand-btn" (click)="openCheckout()" [disabled]="cart().length === 0">
+          Checkout — {{ total() | peso }}
+        </ion-button>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>
+
+<!-- Checkout modal — full height; cash-only with QR placeholders -->
+<ion-modal [isOpen]="checkoutOpen()" (didDismiss)="checkoutOpen.set(false)">
+  <ng-template>
+    <div class="modal-shell">
+      <div class="modal-head sticky">
+        <h2>Checkout</h2>
+        <button type="button" class="icon-btn" (click)="checkoutOpen.set(false)" aria-label="Close">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+
+      <div class="checkout-body">
+        <div class="row">
+          <span>Items</span>
+          <strong>{{ itemCount() }}</strong>
+        </div>
+        <div class="row">
+          <span>Subtotal</span>
+          <strong>{{ subtotal() | peso }}</strong>
+        </div>
+
+        <div class="field">
+          <ion-input
+            label="Discount"
+            labelPlacement="stacked"
+            type="number"
+            inputmode="decimal"
+            [value]="discount()"
+            (ionInput)="discount.set(+$any($event).detail.value || 0)"
+            placeholder="0">
+          </ion-input>
+        </div>
+
+        <p class="section-title">Payment method</p>
+        <div class="pay-grid">
+          <button
+            type="button"
+            class="pay-tile"
+            [class.active]="paymentMethod() === 'cash'"
+            (click)="paymentMethod.set('cash')">
+            <ion-icon name="cash-outline"></ion-icon>
+            <span>Cash</span>
+          </button>
+          <button
+            type="button"
+            class="pay-tile disabled"
+            (click)="flashSoon('GCash QR')"
+            aria-disabled="true">
+            <ion-icon name="qr-code-outline"></ion-icon>
+            <span>GCash QR</span>
+            <small>Coming soon</small>
+          </button>
+          <button
+            type="button"
+            class="pay-tile disabled"
+            (click)="flashSoon('Maya QR')"
+            aria-disabled="true">
+            <ion-icon name="qr-code-outline"></ion-icon>
+            <span>Maya QR</span>
+            <small>Coming soon</small>
+          </button>
+        </div>
+
+        <div class="field">
+          <ion-input
+            label="Amount paid"
+            labelPlacement="stacked"
+            type="number"
+            inputmode="decimal"
+            [value]="amountPaid()"
+            (ionInput)="amountPaid.set(+$any($event).detail.value || 0)">
+          </ion-input>
+        </div>
+
+        <div class="totals-grand">
+          <div class="row big">
+            <span>Total</span>
+            <strong>{{ total() | peso }}</strong>
+          </div>
+          <div class="row">
+            <span>Change</span>
+            <strong>{{ change() | peso }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <ion-button expand="block" class="brand-btn" (click)="confirm()" [disabled]="submitting()">
+          <ion-spinner *ngIf="submitting()" name="crescent" class="mr-2"></ion-spinner>
+          <ion-icon *ngIf="!submitting()" slot="start" name="checkmark-circle"></ion-icon>
+          {{ submitting() ? 'Processing…' : 'Complete sale' }}
+        </ion-button>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>

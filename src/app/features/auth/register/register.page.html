@@ -1,0 +1,123 @@
+<ion-content [fullscreen]="true">
+  <div class="register-shell">
+    <div class="back-bar container-tight">
+      <a routerLink="/auth/login" class="back-link tap" aria-label="Back">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </a>
+    </div>
+
+    <app-brand-header
+      [compact]="true"
+      title="Create your store"
+      subtitle="Set up your Baligya account in less than a minute.">
+    </app-brand-header>
+
+    <div class="container-tight">
+      <form [formGroup]="form" (ngSubmit)="submit()" class="form-stack">
+        <div class="field">
+          <ion-input
+            label="Store name"
+            labelPlacement="stacked"
+            formControlName="store_name"
+            placeholder="My Sari-Sari Store"
+            autocomplete="organization">
+            <ion-icon slot="start" name="storefront-outline"></ion-icon>
+          </ion-input>
+        </div>
+
+        <div class="field">
+          <ion-input
+            label="Your name"
+            labelPlacement="stacked"
+            formControlName="owner_name"
+            placeholder="Juan Dela Cruz"
+            autocomplete="name">
+            <ion-icon slot="start" name="person-outline"></ion-icon>
+          </ion-input>
+        </div>
+
+        <div class="field">
+          <ion-input
+            label="Email"
+            labelPlacement="stacked"
+            type="email"
+            inputmode="email"
+            formControlName="email"
+            placeholder="you@store.com"
+            autocomplete="email">
+            <ion-icon slot="start" name="mail-outline"></ion-icon>
+          </ion-input>
+        </div>
+
+        <div class="field">
+          <ion-input
+            label="Phone (optional)"
+            labelPlacement="stacked"
+            type="tel"
+            inputmode="tel"
+            formControlName="phone"
+            placeholder="+63 9XX XXX XXXX"
+            autocomplete="tel">
+            <ion-icon slot="start" name="call-outline"></ion-icon>
+          </ion-input>
+        </div>
+
+        <div class="field">
+          <ion-textarea
+            label="Address (optional)"
+            labelPlacement="stacked"
+            formControlName="address"
+            placeholder="Street, Barangay, City"
+            autoGrow="true"
+            rows="2">
+            <ion-icon slot="start" name="location-outline"></ion-icon>
+          </ion-textarea>
+        </div>
+
+        <div class="field">
+          <ion-input
+            label="Password"
+            labelPlacement="stacked"
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            placeholder="At least 8 characters"
+            autocomplete="new-password">
+            <ion-icon slot="start" name="lock-closed-outline"></ion-icon>
+            <ion-icon
+              slot="end"
+              [name]="showPassword() ? 'eye-off-outline' : 'eye-outline'"
+              (click)="togglePassword()"
+              class="tap"
+              role="button">
+            </ion-icon>
+          </ion-input>
+        </div>
+
+        <div class="field">
+          <ion-input
+            label="Confirm password"
+            labelPlacement="stacked"
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password_confirmation"
+            placeholder="Repeat password">
+            <ion-icon slot="start" name="lock-closed-outline"></ion-icon>
+          </ion-input>
+        </div>
+
+        <p *ngIf="form.errors?.['mismatch'] && form.touched" class="hint hint-danger">
+          Passwords do not match.
+        </p>
+
+        <ion-button expand="block" class="brand-btn" type="submit" [disabled]="submitting()">
+          <ion-spinner *ngIf="submitting()" name="crescent" class="mr-2"></ion-spinner>
+          <span *ngIf="!submitting()">Create account</span>
+          <ion-icon *ngIf="!submitting()" slot="end" name="arrow-forward-outline"></ion-icon>
+        </ion-button>
+
+        <p class="legal">
+          By creating an account you agree to Baligya's terms of service.
+        </p>
+      </form>
+    </div>
+  </div>
+</ion-content>

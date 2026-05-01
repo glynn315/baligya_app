@@ -1,0 +1,143 @@
+<ion-header [translucent]="true" class="brand-header-bar">
+  <ion-toolbar>
+    <div class="topbar">
+      <div class="store-id">
+        <div class="logo-chip" [style.background]="auth.tenant()?.logo_url ? '#fff' : 'var(--baligya-50)'">
+          <img *ngIf="auth.tenant()?.logo_url" [src]="auth.tenant()?.logo_url" alt="" />
+          <img *ngIf="!auth.tenant()?.logo_url" src="assets/baligyalogo.png" alt="" />
+        </div>
+        <div class="text">
+          <p class="hello">{{ greeting() }}</p>
+          <h1 class="store">{{ auth.tenant()?.name || 'Baligya' }}</h1>
+        </div>
+      </div>
+      <button class="bell tap no-tap-highlight" aria-label="Alerts">
+        <ion-icon name="notifications-outline"></ion-icon>
+        <span *ngIf="(lowStock()?.length || 0) > 0" class="badge">{{ lowStock().length }}</span>
+      </button>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="load($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="container-tight content-wrap">
+
+    <!-- Period switch -->
+    <ion-segment
+      [value]="period()"
+      (ionChange)="setPeriod($any($event).detail.value)"
+      class="period-segment">
+      <ion-segment-button value="today"><ion-label>Today</ion-label></ion-segment-button>
+      <ion-segment-button value="month"><ion-label>This month</ion-label></ion-segment-button>
+    </ion-segment>
+
+    <!-- Hero card -->
+    <section class="hero-card">
+      <p class="label">{{ period() === 'today' ? "Today's sales" : "This month's sales" }}</p>
+      <h2 class="value">
+        <ion-skeleton-text *ngIf="loading()" animated style="width: 160px; height: 28px;"></ion-skeleton-text>
+        <span *ngIf="!loading()">{{ activeTotals().sales_total | peso }}</span>
+      </h2>
+      <div class="hero-grid">
+        <div>
+          <p class="mini-label">Orders</p>
+          <p class="mini-value">{{ activeTotals().sales_count ?? 0 }}</p>
+        </div>
+        <div>
+          <p class="mini-label">Expenses</p>
+          <p class="mini-value">{{ activeTotals().expenses_total | peso }}</p>
+        </div>
+        <div>
+          <p class="mini-label">Net income</p>
+          <p class="mini-value" [class.negative]="(activeTotals().net_income || 0) < 0">
+            {{ activeTotals().net_income | peso }}
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick actions -->
+    <section class="quick-grid">
+      <a routerLink="/tabs/pos" class="quick-tile ion-activatable">
+        <ion-ripple-effect></ion-ripple-effect>
+        <span class="qicon"><ion-icon name="cart-outline"></ion-icon></span>
+        <span class="qlabel">New sale</span>
+      </a>
+      <a routerLink="/tabs/products" class="quick-tile ion-activatable">
+        <ion-ripple-effect></ion-ripple-effect>
+        <span class="qicon"><ion-icon name="cube-outline"></ion-icon></span>
+        <span class="qlabel">Products</span>
+      </a>
+      <a routerLink="/expenses" class="quick-tile ion-activatable">
+        <ion-ripple-effect></ion-ripple-effect>
+        <span class="qicon"><ion-icon name="wallet-outline"></ion-icon></span>
+        <span class="qlabel">Expenses</span>
+      </a>
+      <a routerLink="/inventory" class="quick-tile ion-activatable">
+        <ion-ripple-effect></ion-ripple-effect>
+        <span class="qicon"><ion-icon name="swap-vertical-outline"></ion-icon></span>
+        <span class="qlabel">Inventory</span>
+      </a>
+    </section>
+
+    <!-- Top products -->
+    <section class="block">
+      <div class="block-head">
+        <h3 class="section-title">Top products</h3>
+        <a routerLink="/tabs/products" class="see-all">See all <ion-icon name="arrow-forward-outline"></ion-icon></a>
+      </div>
+
+      <div *ngIf="loading()" class="surface-card">
+        <ion-skeleton-text animated style="width: 80%; height: 14px;"></ion-skeleton-text>
+        <ion-skeleton-text animated style="width: 60%; height: 14px; margin-top: 8px;"></ion-skeleton-text>
+      </div>
+
+      <div *ngIf="!loading() && topProducts().length === 0" class="empty">
+        <ion-icon name="stats-chart-outline"></ion-icon>
+        <p>No sales data yet — make your first sale.</p>
+      </div>
+
+      <div class="product-list" *ngIf="!loading() && topProducts().length > 0">
+        <div *ngFor="let p of topProducts()" class="product-row">
+          <div class="thumb">
+            <img *ngIf="p.image_url" [src]="p.image_url" [alt]="p.name" />
+            <span *ngIf="!p.image_url">{{ p.name.charAt(0) }}</span>
+          </div>
+          <div class="info">
+            <p class="name">{{ p.name }}</p>
+            <p class="meta">{{ p.category?.name || 'Uncategorized' }}</p>
+          </div>
+          <div class="price">{{ p.price | peso }}</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Low stock alerts -->
+    <section class="block" *ngIf="lowStock().length > 0">
+      <div class="block-head">
+        <h3 class="section-title">Low stock</h3>
+        <span class="pill pill-warning">
+          <ion-icon name="alert-circle-outline"></ion-icon>
+          {{ lowStock().length }} items
+        </span>
+      </div>
+      <div class="surface-card warning-card">
+        <div *ngFor="let p of lowStock(); let last = last" class="lowstock-row" [class.no-border]="last">
+          <div class="lowstock-info">
+            <p class="name">{{ p.name }}</p>
+            <p class="meta">{{ p.sku || 'No SKU' }}</p>
+          </div>
+          <div class="qty">
+            <span class="num">{{ p.stock_quantity }}</span>
+            <span class="unit">left</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</ion-content>

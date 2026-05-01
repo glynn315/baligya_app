@@ -1,0 +1,130 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/dashboard"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Expenses</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="load($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="container-tight content-wrap">
+    <div class="summary-card">
+      <p class="label">Total expenses</p>
+      <p class="value">{{ total() | peso }}</p>
+      <p class="meta">{{ items().length }} entries</p>
+    </div>
+
+    <div *ngIf="loading()" class="surface-card">
+      <ion-skeleton-text animated style="width: 80%; height: 14px;"></ion-skeleton-text>
+      <ion-skeleton-text animated style="width: 60%; height: 14px; margin-top: 8px;"></ion-skeleton-text>
+    </div>
+
+    <div *ngIf="!loading() && items().length === 0" class="empty">
+      <ion-icon name="wallet-outline"></ion-icon>
+      <p>No expenses recorded.</p>
+      <small>Tap + to add one.</small>
+    </div>
+
+    <div *ngIf="!loading() && items().length > 0" class="exp-list">
+      <div *ngFor="let e of items()" class="exp-row">
+        <div class="cat-icon"><ion-icon name="pricetag-outline"></ion-icon></div>
+        <div class="info">
+          <p class="cat">{{ e.category }}</p>
+          <p class="meta">
+            <ion-icon name="calendar-outline"></ion-icon>
+            {{ e.expense_date | date:'mediumDate' }}
+            <span *ngIf="e.description" class="dot">•</span>
+            <span *ngIf="e.description">{{ e.description }}</span>
+          </p>
+        </div>
+        <div class="right">
+          <div class="amount">{{ e.amount | peso }}</div>
+          <div class="row-actions">
+            <button type="button" class="row-action" (click)="openEdit(e)" aria-label="Edit">
+              <ion-icon name="document-text-outline"></ion-icon>
+            </button>
+            <button type="button" class="row-action danger" (click)="confirmDelete(e)" aria-label="Remove">
+              <ion-icon name="close-outline"></ion-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button class="brand-fab" (click)="openAdd()">
+      <ion-icon name="add-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>
+
+<ion-modal [isOpen]="modalOpen()" (didDismiss)="modalOpen.set(false)" [breakpoints]="[0, 0.7, 0.95]" [initialBreakpoint]="0.85">
+  <ng-template>
+    <div class="modal-shell">
+      <div class="modal-handle"></div>
+      <div class="modal-head">
+        <h2>{{ editing() ? 'Edit expense' : 'Add expense' }}</h2>
+        <button type="button" class="link-danger" (click)="modalOpen.set(false)">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="save()" class="modal-body">
+        <div class="field">
+          <ion-select
+            label="Category"
+            labelPlacement="stacked"
+            interface="action-sheet"
+            formControlName="category">
+            <ion-select-option *ngFor="let c of categories" [value]="c">{{ c }}</ion-select-option>
+          </ion-select>
+        </div>
+
+        <div class="field">
+          <ion-input
+            label="Amount"
+            labelPlacement="stacked"
+            type="number"
+            inputmode="decimal"
+            formControlName="amount"
+            placeholder="0.00">
+            <ion-icon slot="start" name="cash-outline"></ion-icon>
+          </ion-input>
+        </div>
+
+        <div class="field">
+          <ion-input
+            label="Date"
+            labelPlacement="stacked"
+            type="date"
+            formControlName="expense_date">
+            <ion-icon slot="start" name="calendar-outline"></ion-icon>
+          </ion-input>
+        </div>
+
+        <div class="field">
+          <ion-textarea
+            label="Notes (optional)"
+            labelPlacement="stacked"
+            rows="2"
+            autoGrow="true"
+            formControlName="description"
+            placeholder="What was this for?">
+            <ion-icon slot="start" name="document-text-outline"></ion-icon>
+          </ion-textarea>
+        </div>
+
+        <ion-button expand="block" class="brand-btn" type="submit" [disabled]="submitting()">
+          <ion-spinner *ngIf="submitting()" name="crescent" class="mr-2"></ion-spinner>
+          {{ submitting() ? 'Saving…' : 'Save expense' }}
+        </ion-button>
+      </form>
+    </div>
+  </ng-template>
+</ion-modal>

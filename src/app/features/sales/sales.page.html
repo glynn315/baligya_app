@@ -1,0 +1,67 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Sales</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="load($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="container-tight content-wrap">
+    <div class="summary-card">
+      <p class="label">Total ({{ filter() }})</p>
+      <p class="value">{{ totalSales() | peso }}</p>
+      <p class="meta">{{ filtered().length }} transactions</p>
+    </div>
+
+    <ion-segment
+      [value]="filter()"
+      (ionChange)="setFilter($any($event).detail.value)"
+      class="filter-segment">
+      <ion-segment-button value="all"><ion-label>All</ion-label></ion-segment-button>
+      <ion-segment-button value="completed"><ion-label>Completed</ion-label></ion-segment-button>
+      <ion-segment-button value="voided"><ion-label>Voided</ion-label></ion-segment-button>
+    </ion-segment>
+
+    <div *ngIf="loading()" class="surface-card">
+      <ion-skeleton-text animated style="width: 80%; height: 14px;"></ion-skeleton-text>
+      <ion-skeleton-text animated style="width: 60%; height: 14px; margin-top: 8px;"></ion-skeleton-text>
+    </div>
+
+    <div *ngIf="!loading() && filtered().length === 0" class="empty">
+      <ion-icon name="receipt-outline"></ion-icon>
+      <p>No sales yet.</p>
+    </div>
+
+    <div *ngIf="!loading() && filtered().length > 0" class="sale-list">
+      <div *ngFor="let s of filtered()" class="sale-row" [class.voided]="s.status === 'voided'">
+        <div class="left">
+          <p class="txn">#{{ s.transaction_number }}</p>
+          <p class="meta">
+            <ion-icon name="time-outline"></ion-icon>
+            {{ s.created_at | date:'MMM d, h:mm a' }}
+            <span *ngIf="s.cashier" class="dot">•</span>
+            <span *ngIf="s.cashier">{{ s.cashier.name }}</span>
+          </p>
+          <span *ngIf="s.status === 'voided'" class="pill pill-danger">
+            <ion-icon name="ban-outline"></ion-icon> Voided
+          </span>
+        </div>
+        <div class="right">
+          <p class="amount">{{ s.total | peso }}</p>
+          <p class="method">{{ s.payment_method | uppercase }}</p>
+          <button
+            *ngIf="s.status !== 'voided'"
+            type="button"
+            class="void-btn"
+            (click)="confirmVoid(s)"
+            aria-label="Void sale">
+            <ion-icon name="ban-outline"></ion-icon> Void
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>

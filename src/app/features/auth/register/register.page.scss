@@ -1,0 +1,36 @@
+.register-shell {
+  padding-top: var(--safe-area-top);
+  padding-bottom: 32px;
+}
+.back-bar {
+  padding-top: 8px;
+  display: flex;
+  align-items: center;
+}
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--ion-color-light);
+  color: var(--ion-text-color);
+  text-decoration: none;
+  ion-icon { font-size: 22px; }
+}
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 32px;
+}
+.hint { margin: -4px 0 0; font-size: 12px; }
+.hint-danger { color: var(--ion-color-danger); }
+.legal {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ion-color-medium);
+}
+.mr-2 { margin-right: 8px; }

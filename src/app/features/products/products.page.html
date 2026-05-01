@@ -1,0 +1,216 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Products</ion-title>
+  </ion-toolbar>
+  <ion-toolbar class="search-bar">
+    <ion-searchbar
+      [value]="search()"
+      (ionInput)="search.set($any($event).detail.value || '')"
+      placeholder="Search products"
+      debounce="120"
+      class="brand-search">
+    </ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="load($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="cat-strip" *ngIf="cats().length > 0">
+    <button
+      type="button"
+      class="cat"
+      [class.active]="activeCat() === null"
+      (click)="setCat(null)">
+      All
+    </button>
+    <button
+      *ngFor="let c of cats()"
+      type="button"
+      class="cat"
+      [class.active]="activeCat() === c.id"
+      (click)="setCat(c.id)">
+      {{ c.name }}
+    </button>
+  </div>
+
+  <div class="container-tight content-wrap">
+    <div *ngIf="loading()" class="surface-card">
+      <ion-skeleton-text animated style="width: 80%; height: 14px;"></ion-skeleton-text>
+      <ion-skeleton-text animated style="width: 60%; height: 14px; margin-top: 8px;"></ion-skeleton-text>
+      <ion-skeleton-text animated style="width: 70%; height: 14px; margin-top: 8px;"></ion-skeleton-text>
+    </div>
+
+    <div *ngIf="!loading() && filtered().length === 0" class="empty">
+      <ion-icon name="cube-outline"></ion-icon>
+      <p>No products to show.</p>
+      <small>Tap the + button to add your first product.</small>
+    </div>
+
+    <div *ngIf="!loading() && filtered().length > 0" class="prod-list">
+      <div *ngFor="let p of filtered()" class="prod-row">
+        <div class="thumb">
+          <img *ngIf="p.image_url" [src]="p.image_url" [alt]="p.name" />
+          <span *ngIf="!p.image_url">{{ p.name.charAt(0) }}</span>
+        </div>
+        <div class="info">
+          <div class="line-1">
+            <p class="name">{{ p.name }}</p>
+            <span *ngIf="p.is_low_stock && !p.is_out_of_stock" class="pill pill-warning">
+              <ion-icon name="alert-circle-outline"></ion-icon>
+              Low
+            </span>
+            <span *ngIf="p.is_out_of_stock" class="pill pill-danger">Out</span>
+          </div>
+          <p class="meta">
+            <span>{{ p.category?.name || 'Uncategorized' }}</span>
+            <span class="dot">•</span>
+            <span>Stock: {{ p.stock_quantity }}</span>
+          </p>
+          <div class="price-row">
+            <span class="price">{{ p.price | peso }}</span>
+            <div class="row-actions">
+              <button type="button" class="row-action" (click)="openRestock(p)" aria-label="Restock">
+                <ion-icon name="trending-up-outline"></ion-icon>
+              </button>
+              <button type="button" class="row-action" (click)="openEdit(p)" aria-label="Edit">
+                <ion-icon name="create-outline"></ion-icon>
+              </button>
+              <button type="button" class="row-action danger" (click)="confirmDelete(p)" aria-label="Remove">
+                <ion-icon name="trash-outline"></ion-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button class="brand-fab" (click)="openAdd()">
+      <ion-icon name="add-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>
+
+<!-- Add / Edit modal -->
+<ion-modal [isOpen]="modalOpen()" (didDismiss)="modalOpen.set(false)">
+  <ng-template>
+    <div class="modal-shell">
+      <div class="modal-head sticky">
+        <h2>{{ editing() ? 'Edit product' : 'Add product' }}</h2>
+        <button type="button" class="icon-btn" (click)="modalOpen.set(false)" aria-label="Close">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="save()" class="modal-body">
+        <div class="field">
+          <ion-input label="Name" labelPlacement="stacked" formControlName="name" placeholder="e.g., Coke 500ml">
+            <ion-icon slot="start" name="cube-outline"></ion-icon>
+          </ion-input>
+        </div>
+
+        <div class="field">
+          <ion-select
+            label="Category"
+            labelPlacement="stacked"
+            interface="action-sheet"
+            formControlName="category_id">
+            <ion-select-option [value]="null">Uncategorized</ion-select-option>
+            <ion-select-option *ngFor="let c of cats()" [value]="c.id">{{ c.name }}</ion-select-option>
+          </ion-select>
+        </div>
+
+        <div class="field-grid">
+          <div class="field">
+            <ion-input label="Price" labelPlacement="stacked" type="number" inputmode="decimal" formControlName="price">
+              <ion-icon slot="start" name="cash-outline"></ion-icon>
+            </ion-input>
+          </div>
+          <div class="field">
+            <ion-input label="Cost" labelPlacement="stacked" type="number" inputmode="decimal" formControlName="cost_price"></ion-input>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <div class="field">
+            <ion-input label="Stock" labelPlacement="stacked" type="number" inputmode="numeric" formControlName="stock_quantity"></ion-input>
+          </div>
+          <div class="field">
+            <ion-input label="Reorder at" labelPlacement="stacked" type="number" inputmode="numeric" formControlName="reorder_level"></ion-input>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <div class="field">
+            <ion-input label="SKU" labelPlacement="stacked" formControlName="sku" placeholder="optional"></ion-input>
+          </div>
+          <div class="field">
+            <ion-input label="Barcode" labelPlacement="stacked" formControlName="barcode" placeholder="optional"></ion-input>
+          </div>
+        </div>
+
+        <div class="field">
+          <ion-textarea label="Description" labelPlacement="stacked" rows="2" autoGrow="true" formControlName="description" placeholder="optional"></ion-textarea>
+        </div>
+
+        <ion-button expand="block" class="brand-btn" type="submit" [disabled]="submitting()">
+          <ion-spinner *ngIf="submitting()" name="crescent" class="mr-2"></ion-spinner>
+          {{ submitting() ? 'Saving…' : (editing() ? 'Save changes' : 'Add product') }}
+        </ion-button>
+      </form>
+    </div>
+  </ng-template>
+</ion-modal>
+
+<!-- Restock modal -->
+<ion-modal [isOpen]="restockOpen()" (didDismiss)="restockOpen.set(false)" [breakpoints]="[0, 0.5, 0.85]" [initialBreakpoint]="0.65">
+  <ng-template>
+    <div class="modal-shell">
+      <div class="modal-head sticky">
+        <h2>Restock</h2>
+        <button type="button" class="icon-btn" (click)="restockOpen.set(false)" aria-label="Close">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="restock-target">
+          <p class="rt-name">{{ restockTarget()?.name }}</p>
+          <p class="rt-meta">Current stock: <strong>{{ restockTarget()?.stock_quantity }}</strong></p>
+        </div>
+
+        <div class="field">
+          <ion-input
+            label="Quantity change"
+            labelPlacement="stacked"
+            type="number"
+            inputmode="numeric"
+            [value]="restockQty()"
+            (ionInput)="restockQty.set(+$any($event).detail.value || 0)"
+            placeholder="+10 to add, -2 to deduct">
+            <ion-icon slot="start" name="trending-up-outline"></ion-icon>
+          </ion-input>
+        </div>
+
+        <div class="field">
+          <ion-textarea
+            label="Notes (optional)"
+            labelPlacement="stacked"
+            rows="2"
+            [value]="restockNotes()"
+            (ionInput)="restockNotes.set($any($event).detail.value || '')"
+            placeholder="e.g., supplier delivery">
+          </ion-textarea>
+        </div>
+
+        <ion-button expand="block" class="brand-btn" (click)="saveRestock()" [disabled]="submitting()">
+          <ion-spinner *ngIf="submitting()" name="crescent" class="mr-2"></ion-spinner>
+          {{ submitting() ? 'Saving…' : 'Adjust stock' }}
+        </ion-button>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>
