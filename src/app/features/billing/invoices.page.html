@@ -1,0 +1,57 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/settings/subscription"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Invoices</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="load($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="container-tight content-wrap">
+
+    <div *ngIf="loading()" class="surface-card">
+      <ion-skeleton-text animated style="width: 60%; height: 18px;"></ion-skeleton-text>
+      <ion-skeleton-text animated style="width: 40%; height: 14px; margin-top: 8px;"></ion-skeleton-text>
+    </div>
+
+    <div *ngIf="!loading() && invoices().length === 0" class="empty">
+      <ion-icon name="receipt-outline"></ion-icon>
+      <p>No invoices yet.</p>
+      <p class="hint">Invoices appear here when you change to a paid plan.</p>
+    </div>
+
+    <div class="list" *ngIf="!loading() && invoices().length > 0">
+      <a *ngFor="let inv of invoices()"
+         [routerLink]="['/billing/invoices', inv.id]"
+         class="row ion-activatable">
+        <ion-ripple-effect></ion-ripple-effect>
+
+        <div class="row-icon" [attr.data-status]="inv.status">
+          <ion-icon [name]="iconFor(inv.status)"></ion-icon>
+        </div>
+
+        <div class="row-info">
+          <p class="num">{{ inv.invoice_number }}</p>
+          <p class="meta">
+            <span>{{ inv.subscription_plan?.display_name || inv.subscription_plan?.name || '—' }}</span>
+            <span class="dot">•</span>
+            <span>{{ inv.created_at | date:'mediumDate' }}</span>
+          </p>
+        </div>
+
+        <div class="row-right">
+          <p class="amt">{{ inv.amount | peso }}</p>
+          <span class="status" [attr.data-status]="inv.status">{{ inv.status | titlecase }}</span>
+        </div>
+
+        <ion-icon name="chevron-forward-outline" class="chev"></ion-icon>
+      </a>
+    </div>
+
+  </div>
+</ion-content>

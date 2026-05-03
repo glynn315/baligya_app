@@ -44,7 +44,15 @@ export class InventoryService {
     );
   }
 
-  adjust(payload: { product_id: number; quantity_change: number; notes?: string }): Observable<ApiResponse<InventoryLog>> {
-    return this.http.post<ApiResponse<InventoryLog>>(`${this.base}/inventory/adjust`, payload);
+  adjust(payload: {
+    product_id: number;
+    quantity: number;
+    type?: 'purchase' | 'adjustment' | 'return';
+    notes?: string;
+  }): Observable<ApiResponse<InventoryLog>> {
+    return this.http.post<ApiResponse<InventoryLog>>(
+      `${this.base}/inventory/adjust`,
+      { type: 'purchase', ...payload },
+    );
   }
 }

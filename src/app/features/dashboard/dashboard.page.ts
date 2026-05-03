@@ -17,7 +17,7 @@ import { DashboardService } from '../../core/services/dashboard.service';
 import { ProductService } from '../../core/services/product.service';
 import { SaleService } from '../../core/services/sale.service';
 import { ExpenseService } from '../../core/services/expense.service';
-import { DashboardSummary, Product, Sale, Expense, PeriodTotals } from '../../core/models/api.models';
+import { DashboardSummary, Product, Sale, Expense, PeriodTotals, TopProduct } from '../../core/models/api.models';
 import { PesoPipe } from '../../shared/pipes/peso.pipe';
 
 type Period = 'today' | 'month';
@@ -43,7 +43,7 @@ export class DashboardPage {
   readonly loading = signal(true);
   readonly period = signal<Period>('today');
   readonly summary = signal<DashboardSummary | null>(null);
-  readonly topProducts = signal<Product[]>([]);
+  readonly topProducts = signal<TopProduct[]>([]);
   readonly lowStock = signal<Product[]>([]);
 
   // Local fallback aggregations when backend doesn't return month/today blocks

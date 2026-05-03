@@ -51,8 +51,13 @@ export interface Tenant {
 export interface SubscriptionPlan {
   id: number;
   name: string;
+  display_name?: string;
   price: number;
+  billing_cycle?: 'monthly' | 'yearly' | string;
+  max_employees?: number;
+  max_products?: number;
   features?: string[];
+  is_active?: boolean;
 }
 
 // ─── User / Staff ─────────────────────────────────────────────
@@ -187,4 +192,42 @@ export interface DashboardSummary {
   month?: PeriodTotals;
   low_stock_count?: number;
   out_of_stock_count?: number;
+}
+
+// ─── Billing ──────────────────────────────────────────────────
+export type InvoiceStatus = 'pending' | 'submitted' | 'paid' | 'cancelled' | 'expired' | string;
+
+export interface InvoiceMerchant {
+  gcash_number?: string | null;
+  gcash_name?: string | null;
+  qr_path?: string | null;
+  instructions?: string[];
+}
+
+export interface Invoice {
+  id: number;
+  invoice_number: string;
+  amount: number;
+  billing_cycle: 'monthly' | 'yearly' | string;
+  status: InvoiceStatus;
+  payment_method: string;
+  gcash_number?: string | null;
+  reference_number?: string | null;
+  due_at?: string | null;
+  paid_at?: string | null;
+  notes?: string | null;
+  subscription_plan?: SubscriptionPlan;
+  merchant?: InvoiceMerchant;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Aggregated row returned by GET /dashboard/top-products.
+// Shape comes from a SaleItem GROUP BY in the backend, not the Product table —
+// hence `product_name` (not `name`) and no `category` / `image_url` / `price`.
+export interface TopProduct {
+  product_id: number;
+  product_name: string;
+  total_quantity: number;
+  total_revenue: number;
 }

@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { ApiResponse, DashboardSummary, Product } from '../models/api.models';
+import { ApiResponse, DashboardSummary, TopProduct } from '../models/api.models';
 
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
@@ -28,8 +28,8 @@ export class DashboardService {
     return this.http.get<ApiResponse<unknown>>(`${this.base}/dashboard/expense-report`, { params: p });
   }
 
-  topProducts(limit = 5): Observable<ApiResponse<Product[]>> {
+  topProducts(limit = 5): Observable<ApiResponse<TopProduct[]>> {
     const p = new HttpParams().set('limit', String(limit));
-    return this.http.get<ApiResponse<Product[]>>(`${this.base}/dashboard/top-products`, { params: p });
+    return this.http.get<ApiResponse<TopProduct[]>>(`${this.base}/dashboard/top-products`, { params: p });
   }
 }

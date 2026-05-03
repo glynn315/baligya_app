@@ -1,21 +1,20 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { Router } from '@angular/router';
 import { catchError, switchMap, throwError } from 'rxjs';
 
 import { AuthService } from '../services/auth.service';
 import { environment } from '../../../environments/environment';
 
 /**
- * Adds the Sanctum bearer token, falls back to refresh on 401, and
- * routes the user back to login when the refresh fails.
+ * Adds the Sanctum bearer token and attempts a one-shot refresh on 401.
+ * Refresh failures propagate as-is — the user stays on the current page
+ * and can choose when to sign out.
  *
  * Multi-tenancy: the backend resolves tenant from the authenticated user,
  * so we only need to attach the Sanctum token here. No tenant header needed.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
-  const router = inject(Router);
 
   // Only touch our own API
   if (!req.url.startsWith(environment.apiBaseUrl)) {
@@ -41,7 +40,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => err);
       }
 
-      // 401 on a protected request → try refresh once, then replay
+      // 401 on a protected request → try refresh once, then replay.
+      // If refresh itself fails, surface the error but do NOT force-logout.
       return auth.refresh().pipe(
         switchMap((res) => {
           const newToken = res.data?.access_token;
@@ -51,11 +51,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           });
           return next(replay);
         }),
-        catchError((refreshErr) => {
-          auth.clearLocalSession();
-          router.navigate(['/auth/login'], { replaceUrl: true });
-          return throwError(() => refreshErr);
-        }),
+        catchError((refreshErr) => throwError(() => refreshErr)),
       );
     }),
   );

@@ -34,9 +34,13 @@ export class AuthService {
   private readonly _user = signal<User | null>(this.storage.get<User>(this.keys.user));
   private readonly _tenant = signal<Tenant | null>(this.storage.get<Tenant>(this.keys.tenant));
 
+  // Reactive flag mirroring access-token presence. Updated on persist/clear so
+  // computeds (and route guards) re-evaluate after login/logout.
+  private readonly _hasToken = signal<boolean>(!!this.storage.getString(this.keys.accessToken));
+
   readonly user = this._user.asReadonly();
   readonly tenant = this._tenant.asReadonly();
-  readonly isAuthenticated = computed(() => !!this.storage.getString(this.keys.accessToken));
+  readonly isAuthenticated = computed(() => this._hasToken());
   readonly isVerified = computed(() => !!this._tenant()?.is_verified);
 
   // Used by the HTTP interceptor to await an in-flight refresh.
@@ -118,6 +122,7 @@ export class AuthService {
   private persistTokens(t: AuthTokens): void {
     this.storage.setString(this.keys.accessToken, t.access_token);
     this.storage.setString(this.keys.refreshToken, t.refresh_token);
+    this._hasToken.set(true);
   }
 
   private persistUser(user: User): void {
@@ -145,6 +150,7 @@ export class AuthService {
     ]);
     this._user.set(null);
     this._tenant.set(null);
+    this._hasToken.set(false);
     this.theme.reset();
   }
 }

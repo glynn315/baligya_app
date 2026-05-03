@@ -202,7 +202,8 @@ export class ProductsPage {
     this.submitting.set(true);
     this.inventory.adjust({
       product_id: target.id,
-      quantity_change: qty, // positive → restock; negative → reduce
+      quantity: qty, // positive → restock/purchase; negative → reduce
+      type: qty > 0 ? 'purchase' : 'adjustment',
       notes: this.restockNotes() || undefined,
     }).subscribe({
       next: () => {

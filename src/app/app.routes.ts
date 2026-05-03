@@ -111,6 +111,18 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/settings/store/store.page').then((m) => m.StorePage),
   },
+  {
+    path: 'billing/invoices',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/billing/invoices.page').then((m) => m.InvoicesPage),
+  },
+  {
+    path: 'billing/invoices/:id',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/billing/invoice-detail.page').then((m) => m.InvoiceDetailPage),
+  },
 
   // ─── Defaults ───────────────────────────────────────────
   { path: '', pathMatch: 'full', redirectTo: 'tabs/dashboard' },

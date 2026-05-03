@@ -1,0 +1,179 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/billing/invoices"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Pay invoice</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="container-tight content-wrap">
+
+    <div *ngIf="loading()" class="surface-card">
+      <ion-skeleton-text animated style="width: 60%; height: 18px;"></ion-skeleton-text>
+      <ion-skeleton-text animated style="width: 40%; height: 14px; margin-top: 8px;"></ion-skeleton-text>
+      <ion-skeleton-text animated style="width: 80%; height: 14px; margin-top: 6px;"></ion-skeleton-text>
+    </div>
+
+    <ng-container *ngIf="!loading() && invoice() as inv">
+
+      <!-- Invoice header -->
+      <div class="invoice-card">
+        <div class="ic-row">
+          <div>
+            <p class="ic-label">Invoice</p>
+            <h2 class="ic-num">{{ inv.invoice_number }}</h2>
+          </div>
+          <span class="status-pill" [attr.data-status]="inv.status">
+            <ion-icon
+              [name]="inv.status === 'paid' ? 'checkmark-circle'
+                    : inv.status === 'cancelled' || inv.status === 'expired' ? 'close-circle-outline'
+                    : 'time-outline'">
+            </ion-icon>
+            {{ inv.status | titlecase }}
+          </span>
+        </div>
+
+        <div class="ic-amount">
+          <span class="amount">{{ inv.amount | peso }}</span>
+          <span class="cycle">/{{ inv.billing_cycle === 'yearly' ? 'yr' : 'mo' }}</span>
+        </div>
+
+        <p *ngIf="inv.subscription_plan as plan" class="ic-plan">
+          For <strong>{{ plan.display_name || plan.name }}</strong>
+        </p>
+
+        <div class="ic-meta">
+          <p *ngIf="inv.due_at"><ion-icon name="time-outline"></ion-icon> Due {{ inv.due_at | date:'mediumDate' }}</p>
+          <p *ngIf="inv.paid_at"><ion-icon name="checkmark-circle"></ion-icon> Paid {{ inv.paid_at | date:'medium' }}</p>
+          <p *ngIf="inv.reference_number"><ion-icon name="receipt-outline"></ion-icon> Ref: {{ inv.reference_number }}</p>
+        </div>
+      </div>
+
+      <!-- Reference rejected by admin → shown above the form so the user sees the reason. -->
+      <div *ngIf="inv.status === 'pending' && inv.notes" class="reject-banner">
+        <ion-icon name="alert-circle-outline"></ion-icon>
+        <div>
+          <p class="rb-title">Verification failed</p>
+          <p class="rb-body">{{ inv.notes }}</p>
+        </div>
+      </div>
+
+      <!-- Awaiting admin verification -->
+      <div *ngIf="isSubmitted()" class="pending-card">
+        <ion-icon name="time-outline"></ion-icon>
+        <div>
+          <p class="pc-title">Awaiting verification</p>
+          <p class="pc-body">
+            Your reference <strong>{{ inv.reference_number }}</strong> has been submitted.
+            We're matching it against the GCash transaction. Your plan will activate once it's verified.
+          </p>
+          <ion-button
+            expand="block"
+            fill="outline"
+            color="medium"
+            [disabled]="cancelling()"
+            (click)="confirmCancel()">
+            <ion-spinner *ngIf="cancelling()" name="crescent" slot="start"></ion-spinner>
+            Cancel invoice
+          </ion-button>
+        </div>
+      </div>
+
+      <!-- Payment instructions (only while we can still take a reference) -->
+      <ng-container *ngIf="canSubmitReference()">
+        <h3 class="section-title">Pay via GCash</h3>
+
+        <div class="qr-card">
+          <div class="qr-wrap">
+            <img *ngIf="qrSrc()" [src]="qrSrc()" alt="GCash QR" />
+            <div *ngIf="!qrSrc()" class="qr-fallback">
+              <ion-icon name="qr-code-outline"></ion-icon>
+              <p>QR not configured — use the GCash number below.</p>
+            </div>
+          </div>
+
+          <div class="merchant">
+            <div class="row">
+              <span class="lbl">GCash number</span>
+              <span class="val">{{ merchant()?.gcash_number || inv.gcash_number }}</span>
+              <ion-button fill="clear" size="small" (click)="copy(merchant()?.gcash_number || inv.gcash_number)">
+                <ion-icon slot="icon-only" name="copy-outline"></ion-icon>
+              </ion-button>
+            </div>
+            <div class="row" *ngIf="merchant()?.gcash_name">
+              <span class="lbl">Account name</span>
+              <span class="val">{{ merchant()?.gcash_name }}</span>
+            </div>
+            <div class="row">
+              <span class="lbl">Exact amount</span>
+              <span class="val val-strong">{{ inv.amount | peso }}</span>
+              <ion-button fill="clear" size="small" (click)="copy(inv.amount.toString())">
+                <ion-icon slot="icon-only" name="copy-outline"></ion-icon>
+              </ion-button>
+            </div>
+          </div>
+        </div>
+
+        <div class="instructions">
+          <h4>How to pay</h4>
+          <ol>
+            <li *ngFor="let step of merchant()?.instructions || []">{{ step }}</li>
+          </ol>
+        </div>
+
+        <!-- Reference submission -->
+        <div class="reference-card">
+          <h4>Submit GCash reference</h4>
+          <p class="hint">Paste the reference number from your GCash receipt to mark this invoice paid.</p>
+          <ion-input
+            label="Reference number"
+            labelPlacement="floating"
+            fill="outline"
+            placeholder="e.g. 1234567890123"
+            [value]="reference()"
+            (ionInput)="setReference($any($event).target.value)">
+          </ion-input>
+          <ion-button
+            expand="block"
+            class="brand-btn"
+            [disabled]="submitting() || reference().length < 6"
+            (click)="submit()">
+            <ion-spinner *ngIf="submitting()" name="crescent" slot="start"></ion-spinner>
+            {{ submitting() ? 'Recording…' : "I've paid — record it" }}
+          </ion-button>
+
+          <ion-button
+            *ngIf="inv.status === 'pending'"
+            expand="block"
+            fill="clear"
+            color="medium"
+            [disabled]="cancelling()"
+            (click)="confirmCancel()">
+            <ion-spinner *ngIf="cancelling()" name="crescent" slot="start"></ion-spinner>
+            Cancel invoice
+          </ion-button>
+        </div>
+      </ng-container>
+
+      <!-- Closed states -->
+      <div *ngIf="isClosed()" class="closed-card" [attr.data-status]="inv.status">
+        <ion-icon
+          [name]="inv.status === 'paid' ? 'checkmark-circle' : 'alert-circle-outline'">
+        </ion-icon>
+        <p *ngIf="inv.status === 'paid'">This invoice has been verified and paid. The plan is active.</p>
+        <p *ngIf="inv.status === 'cancelled'">This invoice was cancelled.</p>
+        <p *ngIf="inv.status === 'expired'">This invoice has expired.</p>
+      </div>
+
+    </ng-container>
+
+    <div *ngIf="!loading() && !invoice()" class="empty">
+      <ion-icon name="alert-circle-outline"></ion-icon>
+      <p>Invoice not found.</p>
+      <ion-button fill="clear" (click)="back()">Back to invoices</ion-button>
+    </div>
+
+  </div>
+</ion-content>

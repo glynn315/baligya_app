@@ -1,109 +1,143 @@
-import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, computed, inject, signal } from '@angular/core';
+import { CommonModule, DatePipe } from '@angular/common';
+import { Router, RouterLink } from '@angular/router';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonIcon,
+  IonSkeletonText, IonButton, IonSpinner, IonRippleEffect,
+  AlertController, ToastController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { sparklesOutline, checkmarkCircle, timeOutline } from 'ionicons/icons';
+import {
+  sparklesOutline, checkmarkCircle, timeOutline, ribbonOutline,
+  peopleOutline, cubeOutline, refreshOutline, receiptOutline,
+} from 'ionicons/icons';
 
 import { AuthService } from '../../../core/services/auth.service';
+import { SubscriptionService } from '../../../core/services/tenant.service';
+import { Invoice, SubscriptionPlan } from '../../../core/models/api.models';
 import { PesoPipe } from '../../../shared/pipes/peso.pipe';
 
 @Component({
   selector: 'app-subscription',
   standalone: true,
   imports: [
-    CommonModule, PesoPipe,
+    CommonModule, DatePipe, PesoPipe, RouterLink,
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonIcon,
+    IonSkeletonText, IonButton, IonSpinner, IonRippleEffect,
   ],
-  template: `
-    <ion-header [translucent]="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button defaultHref="/tabs/more"></ion-back-button>
-        </ion-buttons>
-        <ion-title>Subscription</ion-title>
-      </ion-toolbar>
-    </ion-header>
-    <ion-content [fullscreen]="true">
-      <div class="container-tight content-wrap">
-        <div class="plan-card">
-          <div class="plan-head">
-            <ion-icon name="sparkles-outline"></ion-icon>
-            <div>
-              <p class="plan-label">Current plan</p>
-              <h2 class="plan-name">{{ auth.tenant()?.subscription_plan?.name || 'Free trial' }}</h2>
-            </div>
-          </div>
-          <p *ngIf="auth.tenant()?.subscription_plan?.price as price" class="plan-price">
-            {{ price | peso }}<span class="per">/mo</span>
-          </p>
-          <ul *ngIf="auth.tenant()?.subscription_plan?.features as feats" class="plan-feats">
-            <li *ngFor="let f of feats">
-              <ion-icon name="checkmark-circle"></ion-icon> {{ f }}
-            </li>
-          </ul>
-        </div>
-
-        <div class="notice">
-          <div class="badge">
-            <ion-icon name="time-outline"></ion-icon>
-            Plan management coming soon
-          </div>
-          <p>You'll be able to upgrade, change billing, and view invoices here. For now, contact support to change plans.</p>
-        </div>
-      </div>
-    </ion-content>
-  `,
-  styles: [`
-    .content-wrap { padding: 16px 0 32px; display: flex; flex-direction: column; gap: 16px; }
-    .plan-card {
-      background: linear-gradient(160deg, var(--baligya-500), var(--baligya-700));
-      color: #fff;
-      border-radius: 20px;
-      padding: 18px;
-      box-shadow: 0 12px 28px rgba(31,166,77,0.25);
-    }
-    .plan-head {
-      display: flex; gap: 12px; align-items: center;
-      ion-icon { font-size: 28px; }
-    }
-    .plan-label { margin: 0; font-size: 12px; opacity: 0.85; text-transform: uppercase; }
-    .plan-name { margin: 2px 0 0; font-size: 22px; font-weight: 800; }
-    .plan-price {
-      margin: 14px 0 0;
-      font-size: 26px; font-weight: 800;
-      .per { font-size: 13px; opacity: 0.85; font-weight: 600; }
-    }
-    .plan-feats {
-      margin: 14px 0 0;
-      padding: 0;
-      list-style: none;
-      display: flex; flex-direction: column; gap: 8px;
-      li { display: flex; align-items: center; gap: 8px; font-size: 14px; }
-      ion-icon { color: #C9EED5; font-size: 18px; }
-    }
-    .notice {
-      background: var(--ion-card-background);
-      border: 1px solid var(--ion-border-color);
-      border-radius: 16px;
-      padding: 16px;
-      display: flex; flex-direction: column; gap: 8px;
-      .badge {
-        align-self: flex-start;
-        display: inline-flex; align-items: center; gap: 6px;
-        background: var(--ion-color-light);
-        color: var(--ion-color-medium);
-        font-weight: 700; font-size: 12px;
-        padding: 6px 12px;
-        border-radius: 999px;
-        ion-icon { font-size: 14px; }
-      }
-      p { margin: 0; font-size: 14px; color: var(--ion-color-medium); }
-    }
-  `],
+  templateUrl: './subscription.page.html',
+  styleUrls: ['./subscription.page.scss'],
 })
 export class SubscriptionPage {
   readonly auth = inject(AuthService);
-  constructor() { addIcons({ sparklesOutline, checkmarkCircle, timeOutline }); }
+  private readonly subs = inject(SubscriptionService);
+  private readonly alert = inject(AlertController);
+  private readonly toast = inject(ToastController);
+  private readonly router = inject(Router);
+
+  readonly loading = signal(true);
+  readonly switching = signal<number | null>(null);
+  readonly plans = signal<SubscriptionPlan[]>([]);
+
+  readonly currentPlanId = computed(() => this.auth.tenant()?.subscription_plan?.id ?? null);
+  readonly currentPlan   = computed(() => this.auth.tenant()?.subscription_plan ?? null);
+  readonly endsAt        = computed(() => this.auth.tenant()?.subscription_ends_at ?? null);
+  readonly isActive      = computed(() => !!this.auth.tenant()?.has_active_subscription);
+
+  constructor() {
+    addIcons({
+      sparklesOutline, checkmarkCircle, timeOutline, ribbonOutline,
+      peopleOutline, cubeOutline, refreshOutline,
+    });
+    this.load();
+  }
+
+  ionViewWillEnter(): void { this.load(); }
+
+  load(): void {
+    this.loading.set(true);
+    this.subs.plans().subscribe({
+      next: (res) => {
+        this.plans.set(res.data ?? []);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
+    });
+    // Refresh tenant/plan in the background so the "Current plan" card stays accurate.
+    this.subs.current().subscribe({ error: () => {} });
+  }
+
+  formatLimit(n: number | undefined | null): string {
+    if (n === undefined || n === null) return '—';
+    if (n === -1) return 'Unlimited';
+    return String(n);
+  }
+
+  async pick(plan: SubscriptionPlan): Promise<void> {
+    if (plan.id === this.currentPlanId()) return;
+
+    const a = await this.alert.create({
+      header: `Switch to ${plan.display_name || plan.name}?`,
+      message: this.confirmMessage(plan),
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Confirm',
+          handler: () => this.commitChange(plan),
+        },
+      ],
+    });
+    a.present();
+  }
+
+  private confirmMessage(plan: SubscriptionPlan): string {
+    const price = Number(plan.price || 0);
+    const cycle = plan.billing_cycle === 'yearly' ? 'year' : 'month';
+    if (price <= 0) {
+      return `You'll switch to ${plan.display_name || plan.name} immediately.`;
+    }
+    return `You'll be billed ₱${price.toFixed(2)}/${cycle}. The change takes effect immediately.`;
+  }
+
+  private commitChange(plan: SubscriptionPlan): void {
+    this.switching.set(plan.id);
+    this.subs.change(plan.id).subscribe({
+      next: (res) => {
+        this.switching.set(null);
+        const data = res.data as any;
+        // Paid plan → backend returns an Invoice; route to billing.
+        if (data && 'invoice_number' in data) {
+          this.router.navigateByUrl(`/billing/invoices/${(data as Invoice).id}`);
+          return;
+        }
+        // Free plan → applied immediately.
+        this.flash(`You're now on ${plan.display_name || plan.name}`, 'success');
+      },
+      error: (err) => {
+        this.switching.set(null);
+        // 409 means there's already an open invoice — route the user there.
+        if (err?.status === 409 && err?.error?.data?.id) {
+          this.alert.create({
+            header: 'Finish your open invoice',
+            message: err.error.message
+              || 'You already have an invoice awaiting payment or verification.',
+            buttons: [
+              { text: 'Not now', role: 'cancel' },
+              {
+                text: 'Open invoice',
+                handler: () => this.router.navigateByUrl(`/billing/invoices/${err.error.data.id}`),
+              },
+            ],
+          }).then((a) => a.present());
+          return;
+        }
+        this.flash(err?.error?.message || 'Could not change plan', 'danger');
+      },
+    });
+  }
+
+  private async flash(message: string, color: 'success' | 'danger'): Promise<void> {
+    const t = await this.toast.create({ message, duration: 2000, color, position: 'top' });
+    t.present();
+  }
 }

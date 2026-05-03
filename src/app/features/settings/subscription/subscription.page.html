@@ -1,0 +1,113 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/more"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Subscription</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="load()" aria-label="Refresh">
+        <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="container-tight content-wrap !p-5">
+
+    <!-- Current plan -->
+    <div class="plan-card">
+      <div class="plan-head">
+        <ion-icon name="sparkles-outline"></ion-icon>
+        <div class="head-text">
+          <p class="plan-label">Current plan</p>
+          <h2 class="plan-name">{{ currentPlan()?.display_name || currentPlan()?.name || 'Free trial' }}</h2>
+        </div>
+        <span class="state-pill" [class.state-active]="isActive()" [class.state-inactive]="!isActive()">
+          {{ isActive() ? 'Active' : 'Inactive' }}
+        </span>
+      </div>
+
+      <p *ngIf="currentPlan()?.price as price" class="plan-price">
+        {{ price | peso }}<span class="per">/{{ currentPlan()?.billing_cycle === 'yearly' ? 'yr' : 'mo' }}</span>
+      </p>
+
+      <p *ngIf="endsAt() as e" class="plan-renewal">
+        <ion-icon name="time-outline"></ion-icon>
+        Renews {{ e | date:'mediumDate' }}
+      </p>
+
+      <ul *ngIf="(currentPlan()?.features?.length || 0) > 0" class="plan-feats">
+        <li *ngFor="let f of currentPlan()?.features">
+          <ion-icon name="checkmark-circle"></ion-icon> {{ f }}
+        </li>
+      </ul>
+    </div>
+
+    <a routerLink="/billing/invoices" class="invoices-link ion-activatable">
+      <ion-ripple-effect></ion-ripple-effect>
+      <ion-icon name="receipt-outline"></ion-icon>
+      <span>Billing & invoices</span>
+    </a>
+
+    <!-- Available plans -->
+    <h3 class="section-title">Available plans</h3>
+
+    <div *ngIf="loading()" class="surface-card">
+      <ion-skeleton-text animated style="width: 60%; height: 18px;"></ion-skeleton-text>
+      <ion-skeleton-text animated style="width: 40%; height: 14px; margin-top: 8px;"></ion-skeleton-text>
+      <ion-skeleton-text animated style="width: 80%; height: 14px; margin-top: 6px;"></ion-skeleton-text>
+    </div>
+
+    <div *ngIf="!loading() && plans().length === 0" class="empty">
+      <ion-icon name="ribbon-outline"></ion-icon>
+      <p>No plans available right now.</p>
+    </div>
+
+    <div class="plan-list" *ngIf="!loading() && plans().length > 0">
+      <div
+        *ngFor="let p of plans()"
+        class="plan-option ion-activatable"
+        [class.is-current]="p.id === currentPlanId()"
+        (click)="pick(p)">
+        <ion-ripple-effect></ion-ripple-effect>
+
+        <div class="opt-head">
+          <div>
+            <p class="opt-name">{{ p.display_name || p.name }}</p>
+            <p class="opt-price">
+              <span *ngIf="p.price > 0">{{ p.price | peso }}</span>
+              <span *ngIf="!p.price">Free</span>
+              <span class="per">/{{ p.billing_cycle === 'yearly' ? 'yr' : 'mo' }}</span>
+            </p>
+          </div>
+          <span *ngIf="p.id === currentPlanId()" class="current-pill">
+            <ion-icon name="checkmark-circle"></ion-icon> Current
+          </span>
+        </div>
+
+        <div class="opt-limits">
+          <span><ion-icon name="people-outline"></ion-icon> {{ formatLimit(p.max_employees) }} staff</span>
+          <span><ion-icon name="cube-outline"></ion-icon> {{ formatLimit(p.max_products) }} products</span>
+        </div>
+
+        <ul *ngIf="(p.features?.length || 0) > 0" class="opt-feats">
+          <li *ngFor="let f of p.features">
+            <ion-icon name="checkmark-circle"></ion-icon> {{ f }}
+          </li>
+        </ul>
+
+        <ion-button
+          *ngIf="p.id !== currentPlanId()"
+          expand="block"
+          class="brand-btn"
+          [disabled]="switching() !== null"
+          (click)="$event.stopPropagation(); pick(p)">
+          <ion-spinner *ngIf="switching() === p.id" name="crescent" slot="start"></ion-spinner>
+          {{ switching() === p.id ? 'Switching…' : 'Switch to this plan' }}
+        </ion-button>
+      </div>
+    </div>
+
+  </div>
+</ion-content>

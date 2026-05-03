@@ -104,14 +104,13 @@
       <div class="product-list" *ngIf="!loading() && topProducts().length > 0">
         <div *ngFor="let p of topProducts()" class="product-row">
           <div class="thumb">
-            <img *ngIf="p.image_url" [src]="p.image_url" [alt]="p.name" />
-            <span *ngIf="!p.image_url">{{ p.name.charAt(0) }}</span>
+            <span>{{ (p.product_name || '?').charAt(0) }}</span>
           </div>
           <div class="info">
-            <p class="name">{{ p.name }}</p>
-            <p class="meta">{{ p.category?.name || 'Uncategorized' }}</p>
+            <p class="name">{{ p.product_name }}</p>
+            <p class="meta">{{ p.total_quantity }} sold</p>
           </div>
-          <div class="price">{{ p.price | peso }}</div>
+          <div class="price">{{ p.total_revenue | peso }}</div>
         </div>
       </div>
     </section>
