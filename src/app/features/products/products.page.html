@@ -148,9 +148,29 @@
           <div class="field">
             <ion-input label="SKU" labelPlacement="stacked" formControlName="sku" placeholder="optional"></ion-input>
           </div>
-          <div class="field">
-            <ion-input label="Barcode" labelPlacement="stacked" formControlName="barcode" placeholder="optional"></ion-input>
+          <div class="field" style="display:flex; gap:6px; align-items:flex-end;">
+            <ion-input label="Barcode" labelPlacement="stacked" formControlName="barcode" placeholder="optional" style="flex:1"></ion-input>
+            <ion-button fill="outline" size="default" (click)="scanForBarcode()" aria-label="Scan barcode">
+              <ion-icon slot="icon-only" name="scan-outline"></ion-icon>
+            </ion-button>
           </div>
+        </div>
+
+        <div class="field">
+          <ion-select
+            label="Supplier"
+            labelPlacement="stacked"
+            interface="action-sheet"
+            formControlName="supplier_id">
+            <ion-select-option [value]="null">No supplier</ion-select-option>
+            <ion-select-option *ngFor="let s of sups()" [value]="s.id">{{ s.name }}</ion-select-option>
+          </ion-select>
+        </div>
+
+        <div class="field">
+          <ion-input label="Expiration date (optional)" labelPlacement="stacked" type="date" formControlName="expiration_date">
+            <ion-icon slot="start" name="calendar-outline"></ion-icon>
+          </ion-input>
         </div>
 
         <div class="field">
@@ -204,6 +224,17 @@
             (ionInput)="restockNotes.set($any($event).detail.value || '')"
             placeholder="e.g., supplier delivery">
           </ion-textarea>
+        </div>
+
+        <div class="field" *ngIf="auth.isManagerOrAbove()" style="display:flex; align-items:center; gap:10px;">
+          <ion-checkbox
+            [checked]="restockAllowNegative()"
+            (ionChange)="restockAllowNegative.set($any($event).detail.checked)">
+          </ion-checkbox>
+          <div>
+            <p style="margin:0; font-weight:600;">Allow negative stock</p>
+            <small style="color: var(--ion-color-medium);">Manager override — audited.</small>
+          </div>
         </div>
 
         <ion-button expand="block" class="brand-btn" (click)="saveRestock()" [disabled]="submitting()">

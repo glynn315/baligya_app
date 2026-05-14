@@ -31,6 +31,30 @@
     </div>
 
     <!-- Sections -->
+    <div class="section" *ngIf="auth.hasModule('eatery')">
+      <h3 class="section-title">Eatery</h3>
+      <div class="menu">
+        <a routerLink="/eatery/tables" class="menu-item ion-activatable">
+          <ion-ripple-effect></ion-ripple-effect>
+          <span class="m-icon"><ion-icon name="restaurant-outline"></ion-icon></span>
+          <span class="m-label">Tables</span>
+          <ion-icon name="chevron-forward-outline" class="m-arrow"></ion-icon>
+        </a>
+        <a routerLink="/eatery/menu" class="menu-item ion-activatable">
+          <ion-ripple-effect></ion-ripple-effect>
+          <span class="m-icon"><ion-icon name="fast-food-outline"></ion-icon></span>
+          <span class="m-label">Menu items</span>
+          <ion-icon name="chevron-forward-outline" class="m-arrow"></ion-icon>
+        </a>
+        <a routerLink="/eatery/reports" class="menu-item ion-activatable">
+          <ion-ripple-effect></ion-ripple-effect>
+          <span class="m-icon"><ion-icon name="stats-chart-outline"></ion-icon></span>
+          <span class="m-label">Eatery reports</span>
+          <ion-icon name="chevron-forward-outline" class="m-arrow"></ion-icon>
+        </a>
+      </div>
+    </div>
+
     <div class="section">
       <h3 class="section-title">Operations</h3>
       <div class="menu">
@@ -50,6 +74,18 @@
           <ion-ripple-effect></ion-ripple-effect>
           <span class="m-icon"><ion-icon name="layers-outline"></ion-icon></span>
           <span class="m-label">Categories</span>
+          <ion-icon name="chevron-forward-outline" class="m-arrow"></ion-icon>
+        </a>
+        <a routerLink="/suppliers" class="menu-item ion-activatable">
+          <ion-ripple-effect></ion-ripple-effect>
+          <span class="m-icon"><ion-icon name="cube-outline"></ion-icon></span>
+          <span class="m-label">Suppliers</span>
+          <ion-icon name="chevron-forward-outline" class="m-arrow"></ion-icon>
+        </a>
+        <a *ngIf="auth.isManagerOrAbove()" routerLink="/audit-logs" class="menu-item ion-activatable">
+          <ion-ripple-effect></ion-ripple-effect>
+          <span class="m-icon"><ion-icon name="document-text-outline"></ion-icon></span>
+          <span class="m-label">Audit log</span>
           <ion-icon name="chevron-forward-outline" class="m-arrow"></ion-icon>
         </a>
         <a routerLink="/employees" class="menu-item ion-activatable">
@@ -86,6 +122,24 @@
           <ion-ripple-effect></ion-ripple-effect>
           <span class="m-icon"><ion-icon name="help-circle-outline"></ion-icon></span>
           <span class="m-label">Help & support</span>
+          <ion-icon name="chevron-forward-outline" class="m-arrow"></ion-icon>
+        </a>
+      </div>
+    </div>
+
+    <div class="section" *ngIf="auth.isSuperAdmin()">
+      <h3 class="section-title">Dev / Super-admin</h3>
+      <div class="menu">
+        <a routerLink="/admin/tenants" class="menu-item ion-activatable">
+          <ion-ripple-effect></ion-ripple-effect>
+          <span class="m-icon"><ion-icon name="shield-outline"></ion-icon></span>
+          <span class="m-label">Tenants</span>
+          <ion-icon name="chevron-forward-outline" class="m-arrow"></ion-icon>
+        </a>
+        <a routerLink="/admin/modules" class="menu-item ion-activatable">
+          <ion-ripple-effect></ion-ripple-effect>
+          <span class="m-icon"><ion-icon name="grid-outline"></ion-icon></span>
+          <span class="m-label">Registered modules</span>
           <ion-icon name="chevron-forward-outline" class="m-arrow"></ion-icon>
         </a>
       </div>

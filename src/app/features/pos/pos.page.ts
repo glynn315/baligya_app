@@ -3,21 +3,22 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   IonHeader, IonToolbar, IonTitle,
-  IonContent, IonSearchbar, IonIcon, IonModal, IonSelect, IonSelectOption,
-  IonInput, IonButton, IonSpinner, IonRippleEffect, IonRefresher, IonRefresherContent,
-  ToastController,
+  IonContent, IonSearchbar, IonIcon, IonModal, IonInput, IonButton,
+  IonSpinner, IonRippleEffect, IonRefresher, IonRefresherContent, IonButtons,
+  ModalController, ToastController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   searchOutline, addOutline, removeOutline, closeOutline, cartOutline,
   cashOutline, walletOutline, cardOutline, checkmarkCircle, trashOutline,
-  pricetagOutline, qrCodeOutline,
+  pricetagOutline, qrCodeOutline, scanOutline, bookmarkOutline, receiptOutline,
 } from 'ionicons/icons';
 
 import { ProductService } from '../../core/services/product.service';
 import { SaleService } from '../../core/services/sale.service';
-import { CreateSaleDto, PaymentMethod, Product } from '../../core/models/api.models';
+import { CreateSaleDto, PaymentMethod, Product, Receipt, Sale } from '../../core/models/api.models';
 import { PesoPipe } from '../../shared/pipes/peso.pipe';
+import { BarcodeScanModalComponent } from '../../shared/components/barcode-scan-modal.component';
 
 interface CartLine {
   product: Product;
@@ -30,7 +31,7 @@ interface CartLine {
   imports: [
     CommonModule, FormsModule, PesoPipe,
     IonHeader, IonToolbar, IonTitle,
-    IonContent, IonSearchbar, IonIcon, IonModal,
+    IonContent, IonSearchbar, IonIcon, IonModal, IonButtons,
     IonInput, IonButton, IonSpinner, IonRippleEffect, IonRefresher, IonRefresherContent,
   ],
   templateUrl: './pos.page.html',
@@ -40,6 +41,7 @@ export class PosPage {
   private readonly productService = inject(ProductService);
   private readonly saleService = inject(SaleService);
   private readonly toast = inject(ToastController);
+  private readonly modalCtrl = inject(ModalController);
 
   readonly loading = signal(true);
   readonly products = signal<Product[]>([]);
@@ -48,6 +50,12 @@ export class PosPage {
   readonly checkoutOpen = signal(false);
   readonly cartOpen = signal(false);
   readonly submitting = signal(false);
+
+  // Drafts + receipt UI
+  readonly draftsOpen = signal(false);
+  readonly drafts = signal<{ local_uuid: string; cart: any; updated_at: string }[]>([]);
+  readonly receiptOpen = signal(false);
+  readonly receipt = signal<Receipt | null>(null);
 
   // Checkout form state
   readonly paymentMethod = signal<PaymentMethod>('cash');
@@ -80,7 +88,7 @@ export class PosPage {
     addIcons({
       searchOutline, addOutline, removeOutline, closeOutline, cartOutline,
       cashOutline, walletOutline, cardOutline, checkmarkCircle, trashOutline,
-      pricetagOutline, qrCodeOutline,
+      pricetagOutline, qrCodeOutline, scanOutline, bookmarkOutline, receiptOutline,
     });
     this.load();
   }
@@ -166,16 +174,109 @@ export class PosPage {
       next: (res) => {
         this.submitting.set(false);
         if (!res.success) { this.flash(res.message, 'danger'); return; }
-        this.flash(`Sale ${res.data?.transaction_number || ''} completed`, 'success');
+        const sale = res.data as Sale | undefined;
+        this.flash(`Sale ${sale?.transaction_number || ''} completed`, 'success');
         this.cart.set([]);
         this.checkoutOpen.set(false);
         this.cartOpen.set(false);
+        if (sale?.id && sale.id > 0) {
+          this.openReceipt(sale.id);
+        }
       },
       error: (err) => {
         this.submitting.set(false);
         this.flash(err?.error?.message || 'Could not complete sale.', 'danger');
       },
     });
+  }
+
+  // ─── Scanner ──────────────────────────────────────────────────
+  async openScan(): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: BarcodeScanModalComponent,
+      breakpoints: [0, 0.7, 1],
+      initialBreakpoint: 0.85,
+    });
+    await modal.present();
+    const { data, role } = await modal.onDidDismiss();
+    if (role === 'cancel' || !data) return;
+    this.lookupBarcode(String(data.rawValue));
+  }
+
+  private lookupBarcode(code: string): void {
+    this.productService.findByBarcode(code).subscribe({
+      next: (res) => {
+        if (res?.data) {
+          this.add(res.data as Product);
+          this.flash(`Added: ${(res.data as Product).name}`, 'success');
+        } else {
+          this.flash(`No product for barcode ${code}`, 'warning');
+        }
+      },
+      error: () => this.flash('Lookup failed', 'danger'),
+    });
+  }
+
+  // ─── Drafts ───────────────────────────────────────────────────
+  async openDrafts(): Promise<void> {
+    const list = await this.saleService.listLocalDrafts();
+    this.drafts.set(list);
+    this.draftsOpen.set(true);
+  }
+
+  saveDraft(): void {
+    if (this.cart().length === 0) {
+      this.flash('Cart is empty', 'warning');
+      return;
+    }
+    const cartSnapshot = this.cart().map((l) => ({
+      product_id: l.product.id,
+      name: l.product.name,
+      price: l.product.price,
+      qty: l.qty,
+    }));
+    void this.saleService.saveLocalDraft({ items: cartSnapshot, discount: this.discount() })
+      .then(() => {
+        this.flash('Saved as draft', 'success');
+        this.cart.set([]);
+        this.cartOpen.set(false);
+      });
+  }
+
+  loadDraft(draft: { local_uuid: string; cart: any }): void {
+    const items = draft.cart?.items ?? [];
+    const lines: CartLine[] = items.map((i: any) => ({
+      product: this.products().find((p) => p.id === i.product_id) ?? ({
+        id: i.product_id, name: i.name, price: i.price,
+      } as Product),
+      qty: i.qty,
+    }));
+    this.cart.set(lines);
+    this.discount.set(Number(draft.cart?.discount ?? 0));
+    this.draftsOpen.set(false);
+    this.cartOpen.set(true);
+  }
+
+  async deleteDraft(localUuid: string): Promise<void> {
+    await this.saleService.deleteLocalDraft(localUuid);
+    this.drafts.update((list) => list.filter((d) => d.local_uuid !== localUuid));
+  }
+
+  // ─── Receipt ──────────────────────────────────────────────────
+  openReceipt(saleId: number): void {
+    this.saleService.receipt(saleId).subscribe({
+      next: (res) => {
+        if (res?.data) {
+          this.receipt.set(res.data as Receipt);
+          this.receiptOpen.set(true);
+        }
+      },
+      error: () => { /* receipt is optional; ignore */ },
+    });
+  }
+
+  printReceipt(): void {
+    if (typeof window !== 'undefined') window.print();
   }
 
   trackById = (_: number, p: Product) => p.id;

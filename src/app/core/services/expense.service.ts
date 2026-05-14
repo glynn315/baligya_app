@@ -1,9 +1,11 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { from, map, Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { ApiResponse, Expense, InventoryLog, Paginated } from '../models/api.models';
+import { NetworkService } from './offline/network.service';
+import { OutboxService } from './offline/outbox.service';
 
 @Injectable({ providedIn: 'root' })
 export class ExpenseService {
@@ -31,12 +33,29 @@ export class ExpenseService {
   }
 }
 
+export interface AdjustInventoryPayload {
+  product_id: number;
+  quantity: number;
+  type?: 'purchase' | 'adjustment' | 'return';
+  notes?: string;
+  allow_negative?: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class InventoryService {
   private readonly http = inject(HttpClient);
+  private readonly network = inject(NetworkService);
+  private readonly outbox = inject(OutboxService);
   private readonly base = environment.apiBaseUrl;
 
-  logs(params: { product_id?: number; per_page?: number; page?: number } = {}) {
+  logs(params: {
+    product_id?: number;
+    type?: string;
+    date_from?: string;
+    date_to?: string;
+    per_page?: number;
+    page?: number;
+  } = {}) {
     let p = new HttpParams();
     Object.entries(params).forEach(([k, v]) => v != null && (p = p.set(k, String(v))));
     return this.http.get<ApiResponse<Paginated<InventoryLog>> | Paginated<InventoryLog>>(
@@ -44,15 +63,13 @@ export class InventoryService {
     );
   }
 
-  adjust(payload: {
-    product_id: number;
-    quantity: number;
-    type?: 'purchase' | 'adjustment' | 'return';
-    notes?: string;
-  }): Observable<ApiResponse<InventoryLog>> {
-    return this.http.post<ApiResponse<InventoryLog>>(
-      `${this.base}/inventory/adjust`,
-      { type: 'purchase', ...payload },
+  adjust(payload: AdjustInventoryPayload): Observable<ApiResponse<InventoryLog>> {
+    const body = { type: 'purchase' as const, ...payload };
+    if (this.network.online()) {
+      return this.http.post<ApiResponse<InventoryLog>>(`${this.base}/inventory/adjust`, body);
+    }
+    return from(this.outbox.enqueue('inventory_adjust', 'create', body)).pipe(
+      map(() => ({ success: true, message: 'queued', data: undefined })),
     );
   }
 }

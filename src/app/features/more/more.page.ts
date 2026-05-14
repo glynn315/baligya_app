@@ -10,6 +10,8 @@ import {
   walletOutline, layersOutline, swapHorizontalOutline, peopleOutline,
   settingsOutline, lockClosedOutline, logOutOutline, chevronForwardOutline,
   storefrontOutline, cardOutline, helpCircleOutline,
+  restaurantOutline, fastFoodOutline, statsChartOutline, shieldOutline, gridOutline,
+  cubeOutline, documentTextOutline,
 } from 'ionicons/icons';
 
 import { AuthService } from '../../core/services/auth.service';
@@ -34,6 +36,8 @@ export class MorePage {
       walletOutline, layersOutline, swapHorizontalOutline, peopleOutline,
       settingsOutline, lockClosedOutline, logOutOutline, chevronForwardOutline,
       storefrontOutline, cardOutline, helpCircleOutline,
+      restaurantOutline, fastFoodOutline, statsChartOutline, shieldOutline, gridOutline,
+      cubeOutline, documentTextOutline,
     });
   }
 

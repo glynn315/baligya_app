@@ -9,7 +9,7 @@ import {
 import { StorageService } from './storage.service';
 import { ThemeService } from './theme.service';
 
-export interface LoginPayload   { email: string; password: string; device_name?: string }
+export interface LoginPayload { email: string; password: string; device_name?: string, device_id: string; }
 export interface PinLoginPayload { email: string; pin: string; device_name?: string }
 export interface RegisterPayload {
   store_name: string;
@@ -40,8 +40,29 @@ export class AuthService {
 
   readonly user = this._user.asReadonly();
   readonly tenant = this._tenant.asReadonly();
+
+  // Backend issues opaque Sanctum tokens (format: "{id}|{plaintext}"), not JWTs,
+  // so we can't decode an `exp` claim client-side. Trust token presence — the
+  // interceptor handles 401 by refreshing or logging out. _hasToken is reactive
+  // on persistTokens()/clearLocalSession() so route guards re-evaluate.
   readonly isAuthenticated = computed(() => this._hasToken());
   readonly isVerified = computed(() => !!this._tenant()?.is_verified);
+
+  /** True if the current tenant has the given module enabled. */
+  hasModule(name: string): boolean {
+    return (this._tenant()?.modules ?? []).includes(name);
+  }
+
+  /** True if the logged-in user is a platform super-admin (not tied to any tenant). */
+  isSuperAdmin(): boolean {
+    return this._user()?.role === 'super_admin';
+  }
+
+  /** Manager-and-above (super_admin, owner, manager). Cashier returns false. */
+  isManagerOrAbove(): boolean {
+    const r = this._user()?.role;
+    return r === 'super_admin' || r === 'owner' || r === 'manager' || r === 'admin';
+  }
 
   // Used by the HTTP interceptor to await an in-flight refresh.
   private readonly refreshing$ = new BehaviorSubject<boolean>(false);
@@ -53,7 +74,7 @@ export class AuthService {
   }
 
   // ── Token getters ─────────────────────────────────────────
-  getAccessToken():  string | null { return this.storage.getString(this.keys.accessToken); }
+  getAccessToken(): string | null { return this.storage.getString(this.keys.accessToken); }
   getRefreshToken(): string | null { return this.storage.getString(this.keys.refreshToken); }
 
   // ── HTTP calls ────────────────────────────────────────────

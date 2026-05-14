@@ -2,14 +2,16 @@
   <div class="login-shell">
     <app-brand-header
       title="Welcome back"
-      subtitle="Sign in to your Baligya store">
+      subtitle="Sign in to your Baligya store"
+    >
     </app-brand-header>
 
     <div class="container-tight">
       <ion-segment
         [value]="mode()"
         (ionChange)="setMode($any($event).detail.value)"
-        class="mode-segment">
+        class="mode-segment"
+      >
         <ion-segment-button value="password">
           <ion-icon name="lock-closed-outline"></ion-icon>
           <ion-label>Password</ion-label>
@@ -29,8 +31,13 @@
             inputmode="email"
             autocomplete="email"
             placeholder="you@store.com"
-            formControlName="email">
-            <ion-icon slot="start" name="mail-outline" aria-hidden="true"></ion-icon>
+            formControlName="email"
+          >
+            <ion-icon
+              slot="start"
+              name="mail-outline"
+              aria-hidden="true"
+            ></ion-icon>
           </ion-input>
         </div>
 
@@ -42,15 +49,21 @@
               [type]="showPassword() ? 'text' : 'password'"
               autocomplete="current-password"
               placeholder="••••••••"
-              formControlName="password">
-              <ion-icon slot="start" name="lock-closed-outline" aria-hidden="true"></ion-icon>
+              formControlName="password"
+            >
+              <ion-icon
+                slot="start"
+                name="lock-closed-outline"
+                aria-hidden="true"
+              ></ion-icon>
               <ion-icon
                 slot="end"
                 [name]="showPassword() ? 'eye-off-outline' : 'eye-outline'"
                 (click)="togglePassword()"
                 class="tap"
                 role="button"
-                aria-label="Toggle password visibility">
+                aria-label="Toggle password visibility"
+              >
               </ion-icon>
             </ion-input>
           </div>
@@ -65,20 +78,40 @@
               inputmode="numeric"
               maxlength="6"
               placeholder="• • • •"
-              formControlName="pin">
-              <ion-icon slot="start" name="keypad-outline" aria-hidden="true"></ion-icon>
+              formControlName="pin"
+            >
+              <ion-icon
+                slot="start"
+                name="keypad-outline"
+                aria-hidden="true"
+              ></ion-icon>
             </ion-input>
           </div>
         </ng-template>
 
         <div class="row-end">
-          <a routerLink="/auth/forgot-password" class="text-link">Forgot password?</a>
+          <a routerLink="/auth/forgot-password" class="text-link"
+            >Forgot password?</a
+          >
         </div>
 
-        <ion-button expand="block" class="brand-btn" type="submit" [disabled]="submitting()">
-          <ion-spinner *ngIf="submitting()" name="crescent" class="mr-2"></ion-spinner>
+        <ion-button
+          expand="block"
+          class="brand-btn"
+          type="submit"
+          [disabled]="submitting()"
+        >
+          <ion-spinner
+            *ngIf="submitting()"
+            name="crescent"
+            class="mr-2"
+          ></ion-spinner>
           <span *ngIf="!submitting()">Sign in</span>
-          <ion-icon *ngIf="!submitting()" slot="end" name="arrow-forward-outline"></ion-icon>
+          <ion-icon
+            *ngIf="!submitting()"
+            slot="end"
+            name="arrow-forward-outline"
+          ></ion-icon>
         </ion-button>
 
         <div class="register-row">

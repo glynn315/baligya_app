@@ -1,6 +1,14 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-title>New sale</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="openScan()" aria-label="Scan barcode">
+        <ion-icon slot="icon-only" name="scan-outline"></ion-icon>
+      </ion-button>
+      <ion-button (click)="openDrafts()" aria-label="Drafts">
+        <ion-icon slot="icon-only" name="bookmark-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
   <ion-toolbar class="search-bar">
     <ion-searchbar
@@ -111,8 +119,86 @@
           <span>Subtotal</span>
           <strong>{{ subtotal() | peso }}</strong>
         </div>
+        <ion-button expand="block" fill="outline" (click)="saveDraft()" [disabled]="cart().length === 0">
+          <ion-icon slot="start" name="bookmark-outline"></ion-icon>
+          Save as draft
+        </ion-button>
         <ion-button expand="block" class="brand-btn" (click)="openCheckout()" [disabled]="cart().length === 0">
           Checkout — {{ total() | peso }}
+        </ion-button>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>
+
+<!-- Drafts modal -->
+<ion-modal [isOpen]="draftsOpen()" (didDismiss)="draftsOpen.set(false)" [breakpoints]="[0, 0.6, 0.95]" [initialBreakpoint]="0.75">
+  <ng-template>
+    <div class="modal-shell">
+      <div class="modal-head sticky">
+        <h2>Saved drafts</h2>
+        <button type="button" class="icon-btn" (click)="draftsOpen.set(false)" aria-label="Close">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="drafts().length === 0" class="empty">
+          <ion-icon name="bookmark-outline"></ion-icon>
+          <p>No drafts saved yet.</p>
+          <small>Suspend a cart from the checkout sheet to resume later.</small>
+        </div>
+        <div *ngFor="let d of drafts()" class="draft-row">
+          <div class="info">
+            <p class="name">{{ (d.cart?.items?.length || 0) }} item(s)</p>
+            <p class="meta">{{ d.updated_at }}</p>
+          </div>
+          <ion-button size="small" fill="solid" class="brand-btn" (click)="loadDraft(d)">Resume</ion-button>
+          <ion-button size="small" fill="outline" color="danger" (click)="deleteDraft(d.local_uuid)">
+            <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>
+
+<!-- Receipt modal -->
+<ion-modal [isOpen]="receiptOpen()" (didDismiss)="receiptOpen.set(false)" [breakpoints]="[0, 0.7, 1]" [initialBreakpoint]="0.85">
+  <ng-template>
+    <div class="modal-shell">
+      <div class="modal-head sticky">
+        <h2>Receipt</h2>
+        <button type="button" class="icon-btn" (click)="receiptOpen.set(false)" aria-label="Close">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+      <div class="modal-body" *ngIf="receipt() as r">
+        <div class="receipt">
+          <p class="store">{{ r.header.store_name }}</p>
+          <p class="meta">{{ r.header.address }}</p>
+          <p class="meta">Cashier: {{ r.header.cashier }}</p>
+          <p class="meta">{{ r.receipt_no }} · {{ r.header.date }}</p>
+          <hr />
+          <div *ngFor="let it of r.items" class="line">
+            <span class="qn">{{ it.quantity }}× {{ it.name }}</span>
+            <span class="amt">{{ it.total | peso }}</span>
+          </div>
+          <hr />
+          <div class="line"><span>Subtotal</span><span>{{ r.subtotal | peso }}</span></div>
+          <div class="line"><span>Discount</span><span>-{{ r.discount | peso }}</span></div>
+          <div class="line"><span>Tax</span><span>{{ r.tax | peso }}</span></div>
+          <div class="line total"><strong>Total</strong><strong>{{ r.total | peso }}</strong></div>
+          <div class="line"><span>Paid</span><span>{{ r.amount_paid | peso }}</span></div>
+          <div class="line"><span>Change</span><span>{{ r.change | peso }}</span></div>
+          <hr />
+          <div *ngFor="let p of r.payments" class="line">
+            <span>{{ p.method }}</span><span>{{ p.amount | peso }}</span>
+          </div>
+          <p class="footer">{{ r.footer.message }}</p>
+        </div>
+        <ion-button expand="block" class="brand-btn" (click)="printReceipt()">
+          <ion-icon slot="start" name="receipt-outline"></ion-icon>
+          Print
         </ion-button>
       </div>
     </div>

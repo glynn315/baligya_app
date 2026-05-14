@@ -33,15 +33,24 @@ export class LoginPage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastController);
+  private getDeviceId(): string {
+    let deviceId = localStorage.getItem('device_id');
 
+    if (!deviceId) {
+      deviceId = crypto.randomUUID();
+      localStorage.setItem('device_id', deviceId);
+    }
+
+    return deviceId;
+  }
   readonly mode = signal<Mode>('password');
   readonly submitting = signal(false);
   readonly showPassword = signal(false);
 
   readonly form = this.fb.nonNullable.group({
-    email:    ['', [Validators.required, Validators.email]],
+    email: ['', [Validators.required, Validators.email]],
     password: [''],
-    pin:      [''],
+    pin: [''],
   });
 
   constructor() {
@@ -74,9 +83,10 @@ export class LoginPage {
     }
 
     this.submitting.set(true);
+    const deviceId = this.getDeviceId();
     const obs = isPin
       ? this.auth.pinLogin({ email, pin, device_name: 'mobile' })
-      : this.auth.login({ email, password, device_name: 'mobile' });
+      : this.auth.login({ email, password, device_name: 'mobile', device_id: deviceId });
 
     obs.subscribe({
       next: () => {

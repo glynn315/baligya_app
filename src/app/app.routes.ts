@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/guards/auth.guard';
+import { adminGuard } from './core/guards/admin.guard';
+import { managerGuard } from './core/guards/manager.guard';
 
 export const routes: Routes = [
   // ─── Public auth ─────────────────────────────────────────
@@ -94,6 +96,18 @@ export const routes: Routes = [
       import('./features/categories/categories.page').then((m) => m.CategoriesPage),
   },
   {
+    path: 'suppliers',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/suppliers/suppliers.page').then((m) => m.SuppliersPage),
+  },
+  {
+    path: 'audit-logs',
+    canActivate: [authGuard, managerGuard],
+    loadComponent: () =>
+      import('./features/audit-logs/audit-logs.page').then((m) => m.AuditLogsPage),
+  },
+  {
     path: 'settings/security',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -122,6 +136,46 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () =>
       import('./features/billing/invoice-detail.page').then((m) => m.InvoiceDetailPage),
+  },
+
+  // ─── Eatery / Table-service POS ───────────────────────────
+  {
+    path: 'eatery/tables',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/eatery/tables/tables.page').then((m) => m.EateryTablesPage),
+  },
+  {
+    path: 'eatery/tables/:id',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/eatery/tables/table-detail.page').then((m) => m.EateryTableDetailPage),
+  },
+  {
+    path: 'eatery/menu',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/eatery/menu/menu.page').then((m) => m.EateryMenuPage),
+  },
+  {
+    path: 'eatery/reports',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/eatery/reports/reports.page').then((m) => m.EateryReportsPage),
+  },
+
+  // ─── Super-admin (dev) console ───────────────────────────
+  {
+    path: 'admin/tenants',
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () =>
+      import('./features/admin/tenants/admin-tenants.page').then((m) => m.AdminTenantsPage),
+  },
+  {
+    path: 'admin/modules',
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () =>
+      import('./features/admin/modules/admin-modules.page').then((m) => m.AdminModulesPage),
   },
 
   // ─── Defaults ───────────────────────────────────────────

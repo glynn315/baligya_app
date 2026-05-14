@@ -5,19 +5,22 @@ import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonSearchbar, IonIcon,
   IonRefresher, IonRefresherContent, IonFab, IonFabButton,
   IonSkeletonText, IonModal, IonInput, IonTextarea, IonSelect, IonSelectOption,
-  IonButton, IonSpinner, AlertController, ToastController,
+  IonButton, IonSpinner, IonCheckbox, AlertController, ToastController, ModalController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   cubeOutline, addOutline, layersOutline, searchOutline, alertCircleOutline,
   closeOutline, createOutline, archiveOutline, pricetagOutline, cashOutline,
-  trendingUpOutline, trashOutline,
+  trendingUpOutline, trashOutline, scanOutline, calendarOutline,
 } from 'ionicons/icons';
 
 import { ProductService, CategoryService } from '../../core/services/product.service';
 import { InventoryService } from '../../core/services/expense.service';
-import { Category, Product } from '../../core/models/api.models';
+import { SupplierService } from '../../core/services/supplier.service';
+import { AuthService } from '../../core/services/auth.service';
+import { Category, Product, Supplier } from '../../core/models/api.models';
 import { PesoPipe } from '../../shared/pipes/peso.pipe';
+import { BarcodeScanModalComponent } from '../../shared/components/barcode-scan-modal.component';
 
 @Component({
   selector: 'app-products',
@@ -27,7 +30,7 @@ import { PesoPipe } from '../../shared/pipes/peso.pipe';
     IonHeader, IonToolbar, IonTitle, IonContent, IonSearchbar, IonIcon,
     IonRefresher, IonRefresherContent, IonFab, IonFabButton,
     IonSkeletonText, IonModal, IonInput, IonTextarea, IonSelect, IonSelectOption,
-    IonButton, IonSpinner,
+    IonButton, IonSpinner, IonCheckbox,
   ],
   templateUrl: './products.page.html',
   styleUrls: ['./products.page.scss'],
@@ -35,14 +38,18 @@ import { PesoPipe } from '../../shared/pipes/peso.pipe';
 export class ProductsPage {
   private readonly products = inject(ProductService);
   private readonly categories = inject(CategoryService);
+  private readonly suppliers = inject(SupplierService);
   private readonly inventory = inject(InventoryService);
   private readonly fb = inject(FormBuilder);
   private readonly alert = inject(AlertController);
   private readonly toast = inject(ToastController);
+  private readonly modalCtrl = inject(ModalController);
+  readonly auth = inject(AuthService);
 
   readonly loading = signal(true);
   readonly items = signal<Product[]>([]);
   readonly cats = signal<Category[]>([]);
+  readonly sups = signal<Supplier[]>([]);
   readonly search = signal('');
   readonly activeCat = signal<number | null>(null);
 
@@ -54,18 +61,21 @@ export class ProductsPage {
   readonly restockTarget = signal<Product | null>(null);
   readonly restockQty = signal<number>(0);
   readonly restockNotes = signal<string>('');
+  readonly restockAllowNegative = signal<boolean>(false);
 
   readonly form = this.fb.nonNullable.group({
-    name:           ['', [Validators.required, Validators.maxLength(150)]],
-    category_id:    [null as number | null],
-    sku:            [''],
-    barcode:        [''],
-    price:          [0, [Validators.required, Validators.min(0)]],
-    cost_price:     [0, [Validators.min(0)]],
-    stock_quantity: [0, [Validators.min(0)]],
-    reorder_level:  [5, [Validators.min(0)]],
-    description:    [''],
-    is_active:      [true],
+    name:            ['', [Validators.required, Validators.maxLength(150)]],
+    category_id:     [null as number | null],
+    supplier_id:     [null as number | null],
+    sku:             [''],
+    barcode:         [''],
+    price:           [0, [Validators.required, Validators.min(0)]],
+    cost_price:      [0, [Validators.min(0)]],
+    stock_quantity:  [0, [Validators.min(0)]],
+    reorder_level:   [5, [Validators.min(0)]],
+    expiration_date: [null as string | null],
+    description:     [''],
+    is_active:       [true],
   });
 
   readonly filtered = computed(() => {
@@ -85,7 +95,7 @@ export class ProductsPage {
     addIcons({
       cubeOutline, addOutline, layersOutline, searchOutline, alertCircleOutline,
       closeOutline, createOutline, archiveOutline, pricetagOutline, cashOutline,
-      trendingUpOutline, trashOutline,
+      trendingUpOutline, trashOutline, scanOutline, calendarOutline,
     });
     this.load();
   }
@@ -108,17 +118,54 @@ export class ProductsPage {
     this.categories.list().subscribe({
       next: (res) => this.cats.set(res.data ?? []),
     });
+    this.suppliers.active().subscribe({
+      next: (res) => this.sups.set(res.data ?? []),
+      error: () => this.sups.set([]),
+    });
   }
 
   setCat(id: number | null): void { this.activeCat.set(id); }
 
   // ── Add / Edit ────────────────────────────────────────
-  openAdd(): void {
+  /**
+   * Tap "+" → open the scanner first. If the barcode resolves to an
+   * existing product, open the edit form pre-filled. Otherwise open
+   * the create form with the barcode pre-populated. User can "Skip"
+   * to add a product without a barcode.
+   */
+  async openAdd(): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: BarcodeScanModalComponent,
+      cssClass: 'scanner-fullscreen-modal',
+      componentProps: { allowSkip: true },
+    });
+    await modal.present();
+    const { data, role } = await modal.onDidDismiss();
+    if (role === 'cancel') return;
+    if (!data?.rawValue) { this.openAddForm(null); return; }
+
+    const code = String(data.rawValue);
+    this.products.findByBarcode(code).subscribe({
+      next: (res) => {
+        if (res?.data) {
+          this.flash(`Loaded existing: ${(res.data as Product).name}`, 'success');
+          this.openEdit(res.data as Product);
+        } else {
+          this.flash(`No product for "${code}" — fill in details to create.`, 'warning');
+          this.openAddForm(code);
+        }
+      },
+      error: () => this.openAddForm(code),
+    });
+  }
+
+  private openAddForm(barcode: string | null): void {
     this.editing.set(null);
     this.form.reset({
-      name: '', category_id: null, sku: '', barcode: '',
+      name: '', category_id: null, supplier_id: null, sku: '',
+      barcode: barcode ?? '',
       price: 0, cost_price: 0, stock_quantity: 0, reorder_level: 5,
-      description: '', is_active: true,
+      expiration_date: null, description: '', is_active: true,
     });
     this.modalOpen.set(true);
   }
@@ -128,21 +175,36 @@ export class ProductsPage {
     this.form.reset({
       name: p.name,
       category_id: p.category_id ?? null,
+      supplier_id: p.supplier_id ?? null,
       sku: p.sku ?? '',
       barcode: p.barcode ?? '',
       price: Number(p.price),
       cost_price: Number(p.cost_price),
       stock_quantity: p.stock_quantity,
       reorder_level: p.reorder_level,
+      expiration_date: p.expiration_date ? p.expiration_date.substring(0, 10) : null,
       description: p.description ?? '',
       is_active: p.is_active,
     });
     this.modalOpen.set(true);
   }
 
+  async scanForBarcode(): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: BarcodeScanModalComponent,
+      cssClass: 'scanner-fullscreen-modal',
+    });
+    await modal.present();
+    const { data, role } = await modal.onDidDismiss();
+    if (role === 'cancel' || !data) return;
+    this.form.patchValue({ barcode: String(data.rawValue) });
+  }
+
   save(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
-    const payload = this.form.getRawValue() as any;
+    const raw = this.form.getRawValue();
+    const payload: any = { ...raw };
+    if (!payload.expiration_date) payload.expiration_date = null;
     this.submitting.set(true);
     const target = this.editing();
     const obs = target
@@ -189,6 +251,7 @@ export class ProductsPage {
     this.restockTarget.set(p);
     this.restockQty.set(0);
     this.restockNotes.set('');
+    this.restockAllowNegative.set(false);
     this.restockOpen.set(true);
   }
 
@@ -202,9 +265,10 @@ export class ProductsPage {
     this.submitting.set(true);
     this.inventory.adjust({
       product_id: target.id,
-      quantity: qty, // positive → restock/purchase; negative → reduce
+      quantity: qty,
       type: qty > 0 ? 'purchase' : 'adjustment',
       notes: this.restockNotes() || undefined,
+      allow_negative: this.restockAllowNegative() && this.auth.isManagerOrAbove() || undefined,
     }).subscribe({
       next: () => {
         this.submitting.set(false);
@@ -219,7 +283,7 @@ export class ProductsPage {
     });
   }
 
-  private async flash(message: string, color: 'success' | 'danger') {
+  private async flash(message: string, color: 'success' | 'danger' | 'warning') {
     const t = await this.toast.create({ message, duration: 1800, color, position: 'top' });
     t.present();
   }

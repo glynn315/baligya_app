@@ -13,6 +13,27 @@
   </ion-refresher>
 
   <div class="container-tight content-wrap">
+    <!-- Filters -->
+    <div class="filter-card">
+      <div class="filter-row">
+        <ion-select label="Type" labelPlacement="stacked" interface="popover"
+          [value]="typeFilter()" (ionChange)="typeFilter.set($any($event).detail.value || ''); applyFilter()">
+          <ion-select-option value="">All</ion-select-option>
+          <ion-select-option value="sale">Sale</ion-select-option>
+          <ion-select-option value="purchase">Purchase</ion-select-option>
+          <ion-select-option value="adjustment">Adjustment</ion-select-option>
+          <ion-select-option value="return">Return</ion-select-option>
+          <ion-select-option value="initial">Initial</ion-select-option>
+        </ion-select>
+        <ion-input label="From" labelPlacement="stacked" type="date"
+          [value]="dateFrom()" (ionBlur)="dateFrom.set($any($event).target.value || ''); applyFilter()">
+        </ion-input>
+        <ion-input label="To" labelPlacement="stacked" type="date"
+          [value]="dateTo()" (ionBlur)="dateTo.set($any($event).target.value || ''); applyFilter()">
+        </ion-input>
+      </div>
+    </div>
+
     <div *ngIf="loading()" class="surface-card">
       <ion-skeleton-text animated style="width: 80%; height: 14px;"></ion-skeleton-text>
       <ion-skeleton-text animated style="width: 60%; height: 14px; margin-top: 8px;"></ion-skeleton-text>
@@ -21,6 +42,7 @@
     <div *ngIf="!loading() && logs().length === 0" class="empty">
       <ion-icon name="swap-horizontal-outline"></ion-icon>
       <p>No inventory activity yet.</p>
+      <small>Tap + to add stock.</small>
     </div>
 
     <div *ngIf="!loading() && logs().length > 0" class="log-list">
@@ -35,7 +57,10 @@
             {{ l.created_at | date:'MMM d, h:mm a' }}
             <span class="dot">•</span>
             <span class="type">{{ l.type }}</span>
+            <span *ngIf="l.performed_by" class="dot">•</span>
+            <span *ngIf="l.performed_by">{{ l.performed_by.name }}</span>
           </p>
+          <p class="meta" *ngIf="l.notes">{{ l.notes }}</p>
         </div>
         <div class="qty">
           <span class="change" [class.pos]="l.quantity_change > 0">
@@ -46,4 +71,77 @@
       </div>
     </div>
   </div>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button class="brand-fab" (click)="openAddStock()">
+      <ion-icon name="add-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
 </ion-content>
+
+<!-- Add Stock modal -->
+<ion-modal [isOpen]="addOpen()" (didDismiss)="addOpen.set(false)" [breakpoints]="[0, 0.6, 0.95]" [initialBreakpoint]="0.8">
+  <ng-template>
+    <div class="modal-shell">
+      <div class="modal-head sticky">
+        <h2>Add stock movement</h2>
+        <button type="button" class="icon-btn" (click)="addOpen.set(false)" aria-label="Close">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="field" *ngIf="target() as t">
+          <p style="margin:0;font-weight:600;">{{ t.name }}</p>
+          <p style="margin:2px 0 0; color: var(--ion-color-medium); font-size:12px;">
+            Stock: {{ t.stock_quantity }} · SKU {{ t.sku || '—' }}
+          </p>
+        </div>
+        <ion-button fill="outline" expand="block" (click)="scanProduct()">
+          <ion-icon name="scan-outline" slot="start"></ion-icon>
+          {{ target() ? 'Re-scan product' : 'Scan product barcode' }}
+        </ion-button>
+
+        <div class="field">
+          <ion-select label="Type" labelPlacement="stacked" interface="popover"
+            [value]="type()" (ionChange)="type.set($any($event).detail.value)">
+            <ion-select-option value="purchase">Purchase / restock (+)</ion-select-option>
+            <ion-select-option value="adjustment">Adjustment (+ / -)</ion-select-option>
+            <ion-select-option value="return">Return (+)</ion-select-option>
+          </ion-select>
+        </div>
+
+        <div class="field">
+          <ion-input
+            label="Quantity change"
+            labelPlacement="stacked"
+            type="number"
+            inputmode="numeric"
+            [value]="qty()"
+            (ionInput)="qty.set(+$any($event).detail.value || 0)"
+            placeholder="+10 to add, -2 to deduct">
+          </ion-input>
+        </div>
+
+        <div class="field">
+          <ion-textarea label="Notes (optional)" labelPlacement="stacked" rows="2"
+            [value]="notes()" (ionInput)="notes.set($any($event).detail.value || '')"
+            placeholder="e.g., ACME delivery 4/13">
+          </ion-textarea>
+        </div>
+
+        <div class="field" *ngIf="auth.isManagerOrAbove()" style="display:flex; align-items:center; gap:10px;">
+          <ion-checkbox [checked]="allowNegative()" (ionChange)="allowNegative.set($any($event).detail.checked)"></ion-checkbox>
+          <div>
+            <p style="margin:0; font-weight:600;">Allow negative stock</p>
+            <small style="color: var(--ion-color-medium);">Audited as override.</small>
+          </div>
+        </div>
+
+        <ion-button expand="block" class="brand-btn" (click)="save()" [disabled]="submitting() || !target()">
+          <ion-spinner *ngIf="submitting()" name="crescent"></ion-spinner>
+          <span *ngIf="!submitting()">Save movement</span>
+        </ion-button>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>
